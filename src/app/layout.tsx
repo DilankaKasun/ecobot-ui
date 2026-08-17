@@ -3,6 +3,7 @@ import './globals.css';
 import { RosProvider } from '@/hooks/useRos';
 import { Navbar } from '@/components/layout/Navbar';
 import { Sidebar } from '@/components/layout/Sidebar';
+import { MobileNav } from '@/components/layout/MobileNav';
 
 export const metadata: Metadata = {
   title: 'EcoBot Next.js Dashboard',
@@ -22,10 +23,11 @@ export default function RootLayout({
             <Navbar />
             <div className="flex flex-1">
               <Sidebar />
-              <main className="flex-1 p-6 overflow-y-auto max-w-7xl mx-auto w-full">
+              <main className="flex-1 w-full max-w-7xl mx-auto overflow-x-hidden p-3 sm:p-4 md:p-6 pb-24 md:pb-6">
                 {children}
               </main>
             </div>
+            <MobileNav />
           </div>
         </RosProvider>
       </body>

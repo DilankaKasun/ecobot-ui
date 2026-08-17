@@ -18,11 +18,17 @@ export const ROS_CONFIG = {
     TOF_RANGES: '/ecobot/tof_ranges',
     ARM_JOINTS_CMD: '/arm/joint_commands',
     ARM_POSE_GOAL: '/arm/pose_goal',
+    ARM_STATUS: '/arm/status',
     VLA_PROMPT: '/arm/vla_prompt',
     PLANT_SCAN_CMD: '/ecobot/plant_scan_cmd',
     PLANT_SCAN_STATUS: '/ecobot/plant_scan_status',
     SCAN_CAPTURE: '/ecobot/scan_capture',
     MAP_2D: '/map',
     MAP_3D: '/rtabmap/cloud_map',
+    HARDWARE_STATUS: '/ecobot/hardware_status',
+  },
+
+  SERVICES: {
+    HARDWARE_CHECK: '/ecobot/trigger_hardware_check',
   },
 };

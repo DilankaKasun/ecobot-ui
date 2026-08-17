@@ -38,6 +38,19 @@ export interface ArmPoseGoal {
   z: number;
 }
 
+export interface ArmStatus {
+  state?: string;
+  status?: string;
+  joints?: number[] | { base?: number; shoulder?: number; elbow?: number; wrist?: number; gripper?: number };
+  joint_names?: string[];
+  end_effector?: { x?: number; y?: number; z?: number };
+  gripper?: string | { position?: number; state?: string };
+  fault?: boolean;
+  error?: string;
+  timestamp?: number;
+  [key: string]: any;
+}
+
 export interface ToFRanges {
   left: number;    // Front Left (mm)
   right: number;   // Front Right (mm)
@@ -79,4 +92,38 @@ export interface PlantMissionStatus {
   captures: number;
   activeWaypoint?: PlantWaypoint;
   lastDiagnosis?: PlantHealthReport;
+}
+
+export interface HardwareComponentStatus {
+  status: string;
+  [key: string]: any;
+}
+
+export interface HardwareSystemStatus {
+  cpu_temp?: number;
+  gpu_temp?: number;
+  cpu_load?: number;
+  ram_used?: number;
+  disk_used?: number;
+  uptime?: number;
+  [key: string]: any;
+}
+
+export interface HardwareStatus {
+  overall?: string;
+  motors?: HardwareComponentStatus;
+  pico?: HardwareComponentStatus;
+  realsense?: HardwareComponentStatus;
+  arm?: HardwareComponentStatus;
+  system?: HardwareSystemStatus;
+  battery?: HardwareComponentStatus;
+  wifi?: HardwareComponentStatus;
+  timestamp?: number;
+  [key: string]: any;
+}
+
+export interface ServiceResult {
+  success: boolean;
+  message?: string;
+  values?: any;
 }

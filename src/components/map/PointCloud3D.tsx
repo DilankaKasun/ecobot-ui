@@ -112,31 +112,44 @@ export const PointCloud3D: React.FC = () => {
     const pointCloud = new THREE.Points(geometry, pMat);
     scene.add(pointCloud);
 
-    // Simple Mouse Orbit Dragging
-    let isMouseDown = false;
-    let prevMouseX = 0;
-    let prevMouseY = 0;
+    // Simple Orbit Dragging (Mouse + Touch)
+    let isDragging = false;
+    let prevX = 0;
+    let prevY = 0;
 
-    const onMouseDown = (e: MouseEvent) => {
-      isMouseDown = true;
-      prevMouseX = e.clientX;
-      prevMouseY = e.clientY;
+    const startDrag = (x: number, y: number) => {
+      isDragging = true;
+      prevX = x;
+      prevY = y;
     };
 
-    const onMouseMove = (e: MouseEvent) => {
-      if (!isMouseDown) return;
-      const deltaX = e.clientX - prevMouseX;
-      const deltaY = e.clientY - prevMouseY;
-      prevMouseX = e.clientX;
-      prevMouseY = e.clientY;
+    const moveDrag = (x: number, y: number) => {
+      if (!isDragging) return;
+      const deltaX = x - prevX;
+      const deltaY = y - prevY;
+      prevX = x;
+      prevY = y;
 
       camera.position.x += deltaX * 0.02;
       camera.position.y -= deltaY * 0.02;
       camera.lookAt(robotGroup.position);
     };
 
+    const endDrag = () => {
+      isDragging = false;
+    };
+
+    const onMouseDown = (e: MouseEvent) => {
+      e.preventDefault();
+      startDrag(e.clientX, e.clientY);
+    };
+
+    const onMouseMove = (e: MouseEvent) => {
+      moveDrag(e.clientX, e.clientY);
+    };
+
     const onMouseUp = () => {
-      isMouseDown = false;
+      endDrag();
     };
 
     const onWheel = (e: WheelEvent) => {
@@ -145,11 +158,29 @@ export const PointCloud3D: React.FC = () => {
       camera.position.z = Math.max(2, Math.min(25, camera.position.z));
     };
 
+    const onTouchStart = (e: TouchEvent) => {
+      e.preventDefault();
+      if (e.touches[0]) startDrag(e.touches[0].clientX, e.touches[0].clientY);
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      e.preventDefault();
+      if (e.touches[0]) moveDrag(e.touches[0].clientX, e.touches[0].clientY);
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      e.preventDefault();
+      endDrag();
+    };
+
     const domEl = renderer.domElement;
     domEl.addEventListener('mousedown', onMouseDown);
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
-    domEl.addEventListener('wheel', onWheel);
+    domEl.addEventListener('wheel', onWheel, { passive: false });
+    domEl.addEventListener('touchstart', onTouchStart, { passive: false });
+    domEl.addEventListener('touchmove', onTouchMove, { passive: false });
+    domEl.addEventListener('touchend', onTouchEnd, { passive: false });
 
     // Animation Loop
     let animationFrameId: number;
@@ -174,6 +205,9 @@ export const PointCloud3D: React.FC = () => {
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
       domEl.removeEventListener('wheel', onWheel);
+      domEl.removeEventListener('touchstart', onTouchStart);
+      domEl.removeEventListener('touchmove', onTouchMove);
+      domEl.removeEventListener('touchend', onTouchEnd);
       if (mount.contains(renderer.domElement)) {
         mount.removeChild(renderer.domElement);
       }
@@ -194,41 +228,45 @@ export const PointCloud3D: React.FC = () => {
   }, [odom, followRobot]);
 
   return (
-    <div className="relative w-full h-[calc(100vh-8rem)] rounded-2xl overflow-hidden border border-card-border shadow-2xl bg-background">
+    <div className="relative w-full h-[60vh] sm:h-[70vh] md:h-[calc(100vh-8rem)] rounded-2xl overflow-hidden border border-card-border shadow-2xl bg-background">
       {/* 3D Canvas Mount */}
-      <div ref={mountRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
+      <div ref={mountRef} className="w-full h-full cursor-grab active:cursor-grabbing touch-none select-none" />
 
       {/* Floating Control HUD */}
-      <div className="absolute top-4 left-4 bg-card/90 backdrop-blur-md border border-card-border px-4 py-3 rounded-xl shadow-xl space-y-2 text-xs">
-        <div className="flex items-center gap-2 font-bold text-white">
-          <Box className="w-4 h-4 text-blue-400" />
-          <span>Real-time 3D SLAM Visualizer</span>
-        </div>
-        <div className="font-mono text-[11px] text-gray-400 space-y-1">
-          <div>
-            Pose: <span className="text-white">{odom.x.toFixed(2)}, {odom.y.toFixed(2)} m</span>
+      <div className="absolute top-3 sm:top-4 left-3 sm:left-4 right-3 sm:right-auto bg-card/90 backdrop-blur-md border border-card-border px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl shadow-xl space-y-2 text-xs">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 font-bold text-white">
+            <Box className="w-4 h-4 text-blue-400 shrink-0" />
+            <span className="text-[11px] sm:text-xs">Real-time 3D SLAM</span>
           </div>
-          <div>
-            Yaw: <span className="text-white">{odom.yaw.toFixed(1)}°</span>
+          <div className="pt-0 border-t-0 flex items-center gap-2">
+            <button
+              onClick={() => setFollowRobot(!followRobot)}
+              className={`px-2 py-1 rounded text-[11px] font-semibold flex items-center gap-1.5 transition-all ${
+                followRobot
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-card-border text-gray-400 hover:text-white'
+              }`}
+            >
+              <Eye className="w-3 h-3" />
+              {followRobot ? 'Track' : 'Free'}
+            </button>
           </div>
         </div>
-        <div className="pt-2 border-t border-card-border flex items-center gap-2">
-          <button
-            onClick={() => setFollowRobot(!followRobot)}
-            className={`px-2.5 py-1 rounded text-xs font-semibold flex items-center gap-1.5 transition-all ${
-              followRobot
-                ? 'bg-blue-600 text-white'
-                : 'bg-card-border text-gray-400 hover:text-white'
-            }`}
-          >
-            <Eye className="w-3.5 h-3.5" />
-            {followRobot ? 'Tracking Robot' : 'Free Camera'}
-          </button>
+        <div className="font-mono text-[11px] text-gray-400 space-y-0.5">
+          <div className="flex items-center gap-2">
+            <span>Pose:</span>
+            <span className="text-white">{odom.x.toFixed(2)}, {odom.y.toFixed(2)} m</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span>Yaw:</span>
+            <span className="text-white">{odom.yaw.toFixed(1)}°</span>
+          </div>
         </div>
       </div>
 
-      <div className="absolute bottom-4 right-4 bg-card/80 backdrop-blur-md border border-card-border px-3 py-1.5 rounded-lg text-[11px] text-gray-400 font-mono">
-        Left-Click: Rotate | Scroll: Zoom
+      <div className="hidden sm:block absolute bottom-4 right-4 bg-card/80 backdrop-blur-md border border-card-border px-3 py-1.5 rounded-lg text-[11px] text-gray-400 font-mono">
+        Drag: Rotate | Scroll: Zoom
       </div>
     </div>
   );

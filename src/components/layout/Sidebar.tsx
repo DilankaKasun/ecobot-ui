@@ -17,7 +17,7 @@ export const Sidebar: React.FC = () => {
   const pathname = usePathname();
 
   return (
-    <aside className="w-64 border-r border-card-border bg-card flex flex-col justify-between p-4 min-h-[calc(100vh-4rem)]">
+    <aside className="hidden md:flex w-64 shrink-0 border-r border-card-border bg-card flex-col justify-between p-4 min-h-[calc(100vh-4rem)]">
       <nav className="space-y-1.5">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;

@@ -8,6 +8,7 @@ import { KeyboardTeleop } from '@/components/teleop/KeyboardTeleop';
 import { EmergencyStop } from '@/components/teleop/EmergencyStop';
 import { TofRadar } from '@/components/sensors/TofRadar';
 import { DetectionTable } from '@/components/sensors/DetectionTable';
+import { HardwareDiagnostics } from '@/components/sensors/HardwareDiagnostics';
 import { Map2DCanvas } from '@/components/map/Map2DCanvas';
 
 export default function DashboardPage() {
@@ -37,6 +38,7 @@ export default function DashboardPage() {
         {/* Object Perception & Servoing Column */}
         <div className="space-y-4">
           <DetectionTable />
+          <HardwareDiagnostics />
         </div>
       </div>
     </div>

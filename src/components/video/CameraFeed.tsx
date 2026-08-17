@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRos } from '@/hooks/useRos';
-import { Camera, RefreshCw, Maximize2, AlertCircle } from 'lucide-react';
+import { useRos, isTunnelHost } from '@/hooks/useRos';
+import { ROS_CONFIG } from '@/lib/ros-config';
+import { Camera, RefreshCw, AlertCircle, ShieldAlert, ExternalLink } from 'lucide-react';
 
 interface CameraFeedProps {
   title: string;
@@ -11,17 +12,44 @@ interface CameraFeedProps {
   aspectRatio?: 'video' | 'square';
 }
 
+export function resolveStreamUrl(
+  robotHost: string,
+  streamHost: string | undefined,
+  port: number,
+  endpoint: string,
+  refreshKey: number
+): string {
+  if (!robotHost && !streamHost) return '';
+
+  let targetHost = (streamHost && streamHost.trim()) || robotHost.trim();
+
+  // Tunnel domain hosts don't expose ports 8081/8085 directly, default to local IP
+  if (isTunnelHost(targetHost)) {
+    targetHost = ROS_CONFIG.DEFAULT_ROBOT_HOST;
+  }
+
+  const cleanHost = targetHost
+    .replace(/^wss?:\/\//, '')
+    .replace(/^https?:\/\//, '')
+    .split(':')[0];
+
+  const scheme = (targetHost.startsWith('wss://') || targetHost.startsWith('https://')) ? 'https' : 'http';
+
+  return `${scheme}://${cleanHost}:${port}/${endpoint}?t=${refreshKey}`;
+}
+
 export const CameraFeed: React.FC<CameraFeedProps> = ({
   title,
   port,
   endpoint = 'stream.mjpg',
   aspectRatio = 'video',
 }) => {
-  const { robotHost, isConnected } = useRos();
+  const { robotHost, streamHost, isConnected } = useRos();
   const [streamError, setStreamError] = useState<boolean>(false);
   const [refreshKey, setRefreshKey] = useState<number>(0);
 
-  const streamUrl = `http://${robotHost}:${port}/${endpoint}?t=${refreshKey}`;
+  const streamUrl = resolveStreamUrl(robotHost, streamHost, port, endpoint, refreshKey);
+  const isHttpsPage = typeof window !== 'undefined' && window.location.protocol === 'https:';
 
   const handleRefresh = () => {
     setStreamError(false);
@@ -57,15 +85,49 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
             <span>Robot Offline</span>
           </div>
         ) : streamError ? (
-          <div className="flex flex-col items-center gap-2 text-gray-400 text-xs p-4 text-center">
-            <AlertCircle className="w-6 h-6 text-amber-500/80" />
-            <span>Cannot connect to stream on port {port}</span>
-            <button
-              onClick={handleRefresh}
-              className="mt-1 px-3 py-1 bg-blue-600/30 border border-blue-500/40 text-blue-300 rounded text-xs hover:bg-blue-600/50"
-            >
-              Retry Connection
-            </button>
+          <div className="flex flex-col items-center gap-2 text-gray-300 text-xs p-4 text-center max-w-sm">
+            {isHttpsPage ? (
+              <ShieldAlert className="w-7 h-7 text-amber-400" />
+            ) : (
+              <AlertCircle className="w-6 h-6 text-amber-500/80" />
+            )}
+            <span className="font-semibold text-amber-200">Stream Blocked (Port {port})</span>
+
+            {isHttpsPage ? (
+              <div className="space-y-2 text-left bg-black/60 border border-amber-500/30 p-3 rounded-lg text-[11px]">
+                <div className="flex items-center justify-between font-semibold text-amber-300">
+                  <span>How to Allow Video Stream in Chrome/Edge:</span>
+                </div>
+                <ol className="list-decimal list-inside space-y-1 text-gray-300 text-[10.5px]">
+                  <li>Click the <strong>Site Settings / Lock icon</strong> next to URL in address bar.</li>
+                  <li>Click <strong>Site settings</strong>.</li>
+                  <li>Set <strong>Insecure content</strong> to <span className="text-emerald-400 font-bold">Allow</span>.</li>
+                  <li>Reload this tab.</li>
+                </ol>
+              </div>
+            ) : (
+              <span className="text-gray-400 text-[11px]">Ensure the video server is running on the robot.</span>
+            )}
+
+            <div className="flex items-center gap-2 mt-1">
+              <button
+                onClick={handleRefresh}
+                className="px-3 py-1 bg-blue-600/30 border border-blue-500/40 text-blue-300 rounded text-xs hover:bg-blue-600/50"
+              >
+                Retry Connection
+              </button>
+              {streamUrl && (
+                <a
+                  href={streamUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-2.5 py-1 bg-card-border hover:bg-gray-700 text-gray-300 rounded text-xs flex items-center gap-1"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  Open Direct
+                </a>
+              )}
+            </div>
           </div>
         ) : (
           <img

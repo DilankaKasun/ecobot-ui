@@ -126,7 +126,7 @@ export const VirtualJoystick: React.FC = () => {
         className="cursor-crosshair touch-none select-none rounded-full"
       />
 
-      <div className="w-full grid grid-cols-2 gap-3 mt-4 text-xs text-gray-400">
+      <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 text-xs text-gray-400">
         <div>
           <label className="block mb-1">Max Speed (m/s)</label>
           <input
