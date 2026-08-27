@@ -1,11 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRos, isTunnelHost, isLocalOrLanHost } from '@/hooks/useRos';
 import { useLiveKit } from '@/hooks/useLiveKit';
 import { LiveKitVideoPlayer } from './LiveKitVideoPlayer';
+import { SegmentationOverlay } from './SegmentationOverlay';
+import { useGeminiSegmentation } from '@/hooks/useGeminiSegmentation';
 import { ROS_CONFIG } from '@/lib/ros-config';
-import { Camera, RefreshCw, AlertCircle, ShieldAlert, ExternalLink, Wifi, Eye, Radio } from 'lucide-react';
+import { Camera, RefreshCw, AlertCircle, ShieldAlert, ExternalLink, Wifi, Eye, Radio, Scan } from 'lucide-react';
 import { RemoteTrack } from 'livekit-client';
 
 export interface StreamOption {
@@ -97,6 +99,15 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
   const [streamMode, setStreamMode] = useState<'http' | 'ros_topic' | 'livekit'>('http');
   const [rosImageData, setRosImageData] = useState<string | null>(null);
   const [showOverlays, setShowOverlays] = useState<boolean>(true);
+  const [segEnabled, setSegEnabled] = useState<boolean>(false);
+
+  const mediaWrapRef = useRef<HTMLDivElement | null>(null);
+  const isMock = robotHost === 'mock' || streamHost === 'mock';
+  const seg = useGeminiSegmentation({
+    sourceRef: mediaWrapRef,
+    enabled: segEnabled && !isMock,
+    intervalMs: 2500,
+  });
 
   const activePort = streamOptions ? streamOptions[selectedOptionIndex].port : initialPort;
   const activeEndpoint = streamOptions ? streamOptions[selectedOptionIndex].endpoint : initialEndpoint;
@@ -163,8 +174,6 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
     setRefreshKey((k) => k + 1);
     setRosImageData(null);
   };
-
-  const isMock = robotHost === 'mock' || streamHost === 'mock';
 
   return (
     <div className="bg-card border border-card-border rounded-xl overflow-hidden shadow-lg flex flex-col">
@@ -245,6 +254,20 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
           )}
 
           <button
+            onClick={() => setSegEnabled((v) => !v)}
+            disabled={isMock}
+            className={`p-1 px-1.5 rounded text-[11px] font-semibold flex items-center gap-1 transition-colors disabled:opacity-40 ${
+              segEnabled
+                ? 'bg-primary text-black font-bold shadow-[0_0_10px_rgba(0,229,192,0.4)]'
+                : 'bg-card-border/60 text-gray-400 hover:text-white'
+            }`}
+            title="Live Gemini image segmentation on this feed"
+          >
+            <Scan className="w-3 h-3" />
+            <span>Segment</span>
+          </button>
+
+          <button
             onClick={handleRefresh}
             className="p-1 rounded text-gray-400 hover:text-white hover:bg-card-border transition-colors"
             title="Reload Video Stream"
@@ -255,6 +278,7 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
       </div>
 
       <div
+        ref={mediaWrapRef}
         className={`relative bg-black flex items-center justify-center overflow-hidden ${
           aspectRatio === 'video' ? 'aspect-video' : 'aspect-square'
         }`}
@@ -389,6 +413,19 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
               );
             })}
           </div>
+        )}
+
+        {/* Live Gemini Segmentation Overlay */}
+        {segEnabled && !isMock && (
+          <SegmentationOverlay
+            sourceRef={mediaWrapRef}
+            objects={seg.objects}
+            status={seg.status}
+            error={seg.error}
+            latencyMs={seg.lastLatencyMs}
+            model={seg.model}
+            objectFit="contain"
+          />
         )}
       </div>
     </div>
