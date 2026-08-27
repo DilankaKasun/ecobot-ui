@@ -1,15 +1,24 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRos, isTunnelHost } from '@/hooks/useRos';
 import { ROS_CONFIG } from '@/lib/ros-config';
-import { Camera, RefreshCw, AlertCircle, ShieldAlert, ExternalLink } from 'lucide-react';
+import { Camera, RefreshCw, AlertCircle, ShieldAlert, ExternalLink, Wifi } from 'lucide-react';
+
+export interface StreamOption {
+  label: string;
+  port: number;
+  endpoint: string;
+  rosTopic?: string;
+}
 
 interface CameraFeedProps {
   title: string;
   port: number;
   endpoint?: string;
+  rosTopic?: string;
   aspectRatio?: 'video' | 'square';
+  streamOptions?: StreamOption[];
 }
 
 export function resolveStreamUrl(
@@ -40,30 +49,99 @@ export function resolveStreamUrl(
 
 export const CameraFeed: React.FC<CameraFeedProps> = ({
   title,
-  port,
-  endpoint = 'stream.mjpg',
+  port: initialPort,
+  endpoint: initialEndpoint = 'stream.mjpg',
+  rosTopic: initialRosTopic,
   aspectRatio = 'video',
+  streamOptions,
 }) => {
   const { robotHost, streamHost, isConnected, detections } = useRos();
   const [streamError, setStreamError] = useState<boolean>(false);
   const [refreshKey, setRefreshKey] = useState<number>(0);
+  const [useRosStream, setUseRosStream] = useState<boolean>(false);
+  const [rosImageData, setRosImageData] = useState<string | null>(null);
 
-  const streamUrl = resolveStreamUrl(robotHost, streamHost, port, endpoint, refreshKey);
+  const activePort = streamOptions ? streamOptions[selectedOptionIndex].port : initialPort;
+  const activeEndpoint = streamOptions ? streamOptions[selectedOptionIndex].endpoint : initialEndpoint;
+  const activeRosTopic = streamOptions
+    ? streamOptions[selectedOptionIndex].rosTopic || initialRosTopic
+    : initialRosTopic;
+
+  const streamUrl = resolveStreamUrl(robotHost, streamHost, activePort, activeEndpoint, refreshKey);
   const isHttpsPage = typeof window !== 'undefined' && window.location.protocol === 'https:';
+
+  // ROS Topic Image Subscription over WSS Tunnel
+  useEffect(() => {
+    if (!useRosStream || !isConnected || !activeRosTopic) return;
+
+    const unsub = subscribe(
+      activeRosTopic,
+      'sensor_msgs/msg/CompressedImage',
+      (msg: any) => {
+        if (msg && msg.data) {
+          const base64 = typeof msg.data === 'string' ? msg.data : '';
+          setRosImageData(base64.startsWith('data:') ? base64 : `data:image/jpeg;base64,${base64}`);
+        }
+      }
+    );
+
+    return () => unsub();
+  }, [useRosStream, isConnected, activeRosTopic, subscribe]);
 
   const handleRefresh = () => {
     setStreamError(false);
     setRefreshKey((k) => k + 1);
   };
 
+  const handleSelectOption = (idx: number) => {
+    setSelectedOptionIndex(idx);
+    setStreamError(false);
+    setRefreshKey((k) => k + 1);
+    setRosImageData(null);
+  };
+
   return (
     <div className="bg-card border border-card-border rounded-xl overflow-hidden shadow-lg flex flex-col">
-      <div className="px-4 py-2.5 bg-background/50 border-b border-card-border flex items-center justify-between">
+      <div className="px-4 py-2.5 bg-background/50 border-b border-card-border flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
-          <Camera className="w-4 h-4 text-blue-400" />
+          <Camera className="w-4 h-4 text-blue-400 shrink-0" />
           <h3 className="font-semibold text-sm text-gray-200">{title}</h3>
         </div>
         <div className="flex items-center gap-1.5">
+          {streamOptions && streamOptions.length > 0 && (
+            <div className="flex items-center bg-black/40 p-0.5 rounded-lg border border-card-border">
+              {streamOptions.map((opt, idx) => (
+                <button
+                  key={opt.label}
+                  onClick={() => handleSelectOption(idx)}
+                  className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all ${
+                    selectedOptionIndex === idx
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'text-gray-400 hover:text-gray-200'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
+          {activeRosTopic && (
+            <button
+              onClick={() => {
+                setUseRosStream((v) => !v);
+                setStreamError(false);
+              }}
+              className={`p-1 px-1.5 rounded text-[11px] font-semibold flex items-center gap-1 transition-colors ${
+                useRosStream
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-card-border/60 text-gray-400 hover:text-white'
+              }`}
+              title="Toggle WSS Tunnel ROS Stream (Bypasses Mixed Content)"
+            >
+              <Wifi className="w-3 h-3" />
+              <span>{useRosStream ? 'WSS Stream' : 'HTTP'}</span>
+            </button>
+          )}
           <button
             onClick={handleRefresh}
             className="p-1 rounded text-gray-400 hover:text-white hover:bg-card-border transition-colors"
@@ -86,7 +164,7 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
             ) : (
               <AlertCircle className="w-6 h-6 text-amber-500/80" />
             )}
-            <span className="font-semibold text-amber-200">Stream Blocked (Port {port})</span>
+            <span className="font-semibold text-amber-200">Stream Blocked (Port {activePort})</span>
 
             {isHttpsPage ? (
               <div className="space-y-2 text-left bg-black/60 border border-amber-500/30 p-3 rounded-lg text-[11px]">
@@ -104,12 +182,24 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
               <span className="text-gray-400 text-[11px]">Ensure the video server is running on the robot.</span>
             )}
 
-            <div className="flex items-center gap-2 mt-1">
+            <div className="flex items-center gap-2 mt-1 flex-wrap justify-center">
+              {activeRosTopic && (
+                <button
+                  onClick={() => {
+                    setUseRosStream(true);
+                    setStreamError(false);
+                  }}
+                  className="px-3 py-1 bg-emerald-600/40 border border-emerald-500/50 text-emerald-200 rounded text-xs hover:bg-emerald-600/70 font-semibold flex items-center gap-1"
+                >
+                  <Wifi className="w-3 h-3" />
+                  Use WSS Tunnel Stream
+                </button>
+              )}
               <button
                 onClick={handleRefresh}
                 className="px-3 py-1 bg-blue-600/30 border border-blue-500/40 text-blue-300 rounded text-xs hover:bg-blue-600/50"
               >
-                Retry Connection
+                Retry HTTP
               </button>
               {streamUrl && (
                 <a

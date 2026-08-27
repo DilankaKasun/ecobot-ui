@@ -1,9 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { RosProvider } from '@/hooks/useRos';
-import { Navbar } from '@/components/layout/Navbar';
-import { Sidebar } from '@/components/layout/Sidebar';
-import { MobileNav } from '@/components/layout/MobileNav';
+import { DashboardShell } from '@/components/layout/DashboardShell';
 
 export const metadata: Metadata = {
   title: 'EcoBot Next.js Dashboard',

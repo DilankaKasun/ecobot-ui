@@ -10,10 +10,10 @@ export const ARM_PARAMS = {
   L3: 0.140, // Wrist to end-effector (m)
 
   JOINTS: [
-    { name: 'base', label: 'Base (Yaw)', min: 0, max: 270, home: 95, offset: 95 },
-    { name: 'shoulder', label: 'Shoulder', min: 0, max: 90, home: 60, offset: 0 },
-    { name: 'elbow', label: 'Elbow', min: 0, max: 180, home: 169, offset: 0 },
-    { name: 'wrist', label: 'Wrist', min: 0, max: 180, home: 5, offset: 0 },
+    { name: 'base', label: 'Base (Yaw)', min: 0, max: 270, home: 100, offset: 100 },
+    { name: 'shoulder', label: 'Shoulder', min: 0, max: 180, home: 117, offset: 0 },
+    { name: 'elbow', label: 'Elbow', min: 0, max: 180, home: 180, offset: 0 },
+    { name: 'wrist', label: 'Wrist', min: 0, max: 180, home: 35, offset: 0 },
   ],
 };
 
@@ -23,7 +23,9 @@ export function forwardKinematics(
   theta3: number,
   theta4: number
 ): { x: number; y: number; z: number } {
-  const th1 = (theta1 * Math.PI) / 180;
+  // theta1 is base servo angle with 100 deg being straight forward (0 rad)
+  const baseOffset = ARM_PARAMS.JOINTS[0].offset ?? 100;
+  const th1 = ((theta1 - baseOffset) * Math.PI) / 180;
   const th2 = (theta2 * Math.PI) / 180;
   const th3 = (theta3 * Math.PI) / 180;
   const th4 = (theta4 * Math.PI) / 180;

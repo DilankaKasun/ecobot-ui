@@ -8,6 +8,38 @@ import { DetectedObject } from '@/types/ros';
 export const DetectionTable: React.FC = () => {
   const { detections, gotoStatus, selectGotoTarget, stopGoto } = useDetections();
 
+  const depthOf = (det: DetectedObject): number | null => {
+    const d = det.distance ?? det.depth;
+    return typeof d === 'number' && isFinite(d) && d > 0 ? d : null;
+  };
+
+  const positionOf = (det: DetectedObject): string | null => {
+    if (Array.isArray(det.box_3d) && det.box_3d.length >= 3) {
+      const [x, y, z] = det.box_3d;
+      if ([x, y, z].every((v) => typeof v === 'number' && isFinite(v))) {
+        return `(${x.toFixed(2)}, ${y.toFixed(2)}, ${z.toFixed(2)})`;
+      }
+    }
+    if (
+      [det.center_x, det.center_y, det.center_z].every(
+        (v) => typeof v === 'number' && isFinite(v as number)
+      )
+    ) {
+      return `(${(det.center_x as number).toFixed(2)}, ${(det.center_y as number).toFixed(
+        2
+      )}, ${(det.center_z as number).toFixed(2)})`;
+    }
+    return null;
+  };
+
+  const dimsOf = (det: DetectedObject): string | null => {
+    const dims = Array.isArray(det.box_3d) && det.box_3d.length >= 6 ? det.box_3d.slice(3, 6) : det.dimensions;
+    if (Array.isArray(dims) && dims.length >= 3 && dims.every((v) => typeof v === 'number' && isFinite(v))) {
+      return `${(dims[0] as number).toFixed(2)}×${(dims[1] as number).toFixed(2)}×${(dims[2] as number).toFixed(2)}`;
+    }
+    return null;
+  };
+
   return (
     <div className="bg-card border border-card-border rounded-xl p-4 flex flex-col justify-between">
       <div>
@@ -43,9 +75,9 @@ export const DetectionTable: React.FC = () => {
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="text-gray-400 border-b border-card-border">
-                <th className="pb-2 font-medium">Class</th>
-                <th className="pb-2 font-medium">Confidence</th>
-                <th className="pb-2 font-medium">Distance</th>
+                <th className="pb-2 font-medium">Class / 3D Pos</th>
+                <th className="pb-2 font-medium">Conf</th>
+                <th className="pb-2 font-medium">Depth</th>
                 <th className="pb-2 text-right font-medium">Action</th>
               </tr>
             </thead>
@@ -57,29 +89,42 @@ export const DetectionTable: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                detections.map((det, idx) => (
-                  <tr key={idx} className="hover:bg-card-border/30 transition-colors">
-                    <td className="py-2 font-semibold text-gray-200 capitalize flex items-center gap-1.5">
-                      <Scan className="w-3.5 h-3.5 text-blue-400" />
-                      {det.class_name}
-                    </td>
-                    <td className="py-2 font-mono text-gray-300">
-                      {(det.confidence * 100).toFixed(0)}%
-                    </td>
-                    <td className="py-2 font-mono text-emerald-400">
-                      {det.distance ? `${det.distance.toFixed(2)} m` : '--'}
-                    </td>
-                    <td className="py-2 text-right">
-                      <button
-                        onClick={() => selectGotoTarget(det)}
-                        className="inline-flex items-center gap-1 bg-blue-600/30 hover:bg-blue-600 border border-blue-500/40 text-blue-200 hover:text-white px-2 py-0.5 rounded text-[11px] font-medium transition-all"
-                      >
-                        <Navigation className="w-3 h-3" />
-                        Approach
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                detections.map((det, idx) => {
+                  const depthVal = depthOf(det);
+                  const posStr = positionOf(det);
+                  const dimsStr = dimsOf(det);
+
+                  return (
+                    <tr key={idx} className="hover:bg-card-border/30 transition-colors">
+                      <td className="py-2 text-gray-200 capitalize">
+                        <div className="flex items-center gap-1.5 font-semibold">
+                          <Scan className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                          <span>{det.class_name}</span>
+                        </div>
+                        {posStr && (
+                          <div className="text-[10px] font-mono text-gray-400 pl-5">
+                            XYZ: {posStr} {dimsStr ? `| ${dimsStr}m` : ''}
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-2 font-mono text-gray-300">
+                        {(det.confidence * 100).toFixed(0)}%
+                      </td>
+                      <td className="py-2 font-mono text-emerald-400">
+                        {depthVal !== null ? `${depthVal.toFixed(2)} m` : '--'}
+                      </td>
+                      <td className="py-2 text-right">
+                        <button
+                          onClick={() => selectGotoTarget(det)}
+                          className="inline-flex items-center gap-1 bg-blue-600/30 hover:bg-blue-600 border border-blue-500/40 text-blue-200 hover:text-white px-2 py-0.5 rounded text-[11px] font-medium transition-all"
+                        >
+                          <Navigation className="w-3 h-3" />
+                          Approach
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
