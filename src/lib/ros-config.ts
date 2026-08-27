@@ -26,6 +26,9 @@ export const ROS_CONFIG = {
     MAP_2D: '/map',
     MAP_3D: '/rtabmap/cloud_map',
     HARDWARE_STATUS: '/ecobot/hardware_status',
+    CAMERA_COLOR_COMPRESSED: '/camera/color/image_raw/compressed',
+    CAMERA_OBSTACLE_COMPRESSED: '/ecobot/obstacle/compressed',
+    CAMERA_ARM_COMPRESSED: '/arm/camera/image_raw/compressed',
   },
 
   SERVICES: {

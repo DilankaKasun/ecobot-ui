@@ -2,11 +2,13 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import { useOdometry } from '@/hooks/useOdometry';
-import { MapPin, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
+import { useDetections } from '@/hooks/useDetections';
+import { MapPin, RotateCcw, ZoomIn, ZoomOut, Target } from 'lucide-react';
 
 export const Map2DCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const { odom } = useOdometry();
+  const { detections } = useDetections();
   const [trace, setTrace] = useState<{ x: number; y: number }[]>([]);
   const [scale, setScale] = useState<number>(30); // pixels per meter
 
@@ -104,7 +106,42 @@ export const Map2DCanvas: React.FC = () => {
     ctx.fill();
 
     ctx.restore();
-  }, [odom, trace, scale]);
+
+    // Draw Detected Objects
+    detections.forEach((det) => {
+      const fwd = det.distance ?? det.depth ?? det.center_z;
+      if (typeof fwd !== 'number' || fwd <= 0) return;
+      const lat = typeof det.center_x === 'number' ? -det.center_x : 0;
+
+      const objX = odom.x + fwd * Math.cos(yawRad) - lat * Math.sin(yawRad);
+      const objY = odom.y + fwd * Math.sin(yawRad) + lat * Math.cos(yawRad);
+
+      const ox = cx + objX * scale;
+      const oy = cy - objY * scale;
+
+      // Draw Object Glow
+      ctx.fillStyle = 'rgba(236, 72, 153, 0.25)';
+      ctx.beginPath();
+      ctx.arc(ox, oy, 12, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Object Pin
+      ctx.fillStyle = '#EC4899';
+      ctx.beginPath();
+      ctx.arc(ox, oy, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#F472B6';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Class Label & Distance Text
+      ctx.font = '10px monospace';
+      ctx.fillStyle = '#F3F4F6';
+      ctx.textAlign = 'center';
+      const labelText = `${det.class_name} (${fwd.toFixed(1)}m)`;
+      ctx.fillText(labelText, ox, oy - 9);
+    });
+  }, [odom, trace, scale, detections]);
 
   return (
     <div className="bg-card border border-card-border rounded-xl p-4 flex flex-col justify-between">
@@ -144,6 +181,7 @@ export const Map2DCanvas: React.FC = () => {
 
       <div className="flex items-center justify-between text-[11px] text-gray-500 mt-3 font-mono">
         <span>Scale: {(1 / (scale / 100)).toFixed(0)} cm/grid</span>
+        <span className="text-pink-400">Objects: {detections.length}</span>
         <span>Points: {trace.length}</span>
       </div>
     </div>

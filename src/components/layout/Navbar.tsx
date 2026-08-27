@@ -3,9 +3,14 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRos } from '@/hooks/useRos';
-import { Bot, Wifi, WifiOff, Settings as SettingsIcon, Activity, AlertTriangle, ShieldCheck, Eye, Share2, Check } from 'lucide-react';
+import { Bot, Wifi, WifiOff, Settings as SettingsIcon, Activity, AlertTriangle, ShieldCheck, Eye, Share2, Check, Menu, X } from 'lucide-react';
 
-export const Navbar: React.FC = () => {
+interface NavbarProps {
+  onToggleMobileMenu?: () => void;
+  isMobileMenuOpen?: boolean;
+}
+
+export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileMenu, isMobileMenuOpen }) => {
   const { isConnected, isConnecting, robotHost, streamHost, setRobotHost, isMixedContentWarning, connectionError, operatorMode, setOperatorMode } = useRos();
   const [isEditingIp, setIsEditingIp] = useState(false);
   const [tempIp, setTempIp] = useState(robotHost);
@@ -31,10 +36,19 @@ export const Navbar: React.FC = () => {
   };
 
   return (
-    <header className="h-14 md:h-16 border-b border-card-border bg-card px-3 sm:px-6 flex items-center justify-between sticky top-0 z-50">
+    <header className="h-14 md:h-16 border-b border-card-border bg-card px-3 sm:px-6 flex items-center justify-between sticky top-0 z-40">
       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-        <div className="w-9 h-9 md:w-10 md:h-10 shrink-0 rounded-lg bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
-          <Bot className="w-5 h-5 md:w-6 md:h-6" />
+        {onToggleMobileMenu && (
+          <button
+            onClick={onToggleMobileMenu}
+            className="md:hidden p-1.5 rounded-lg bg-card-border/60 text-gray-300 hover:text-white hover:bg-card-border"
+            aria-label="Toggle Sidebar Menu"
+          >
+            {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+        )}
+        <div className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 shrink-0 rounded-lg bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
+          <Bot className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
         </div>
         <div className="min-w-0">
           <h1 className="font-bold text-base md:text-lg text-white leading-tight flex items-center gap-2">
