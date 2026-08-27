@@ -57,6 +57,7 @@ export function useGeminiLive(): UseGeminiLive {
   const opBufRef = useRef('');
   const agentBufRef = useRef('');
   const closingRef = useRef(false);
+  const greetedRef = useRef(false);
 
   useEffect(() => {
     mutedRef.current = muted;
@@ -115,6 +116,19 @@ export function useGeminiLive(): UseGeminiLive {
 
   const handleMessage = useCallback(
     (msg: any) => {
+      // Once the session config is accepted, nudge the agent to greet first.
+      if (msg?.setupComplete && !greetedRef.current) {
+        greetedRef.current = true;
+        try {
+          sessionRef.current?.sendClientContent({
+            turns: [{ role: 'user', parts: [{ text: GEMINI_LIVE_CONFIG.GREETING_PROMPT }] }],
+            turnComplete: true,
+          });
+        } catch {
+          /* not ready */
+        }
+      }
+
       const sc = msg?.serverContent;
 
       // --- audio out ---
@@ -165,6 +179,7 @@ export function useGeminiLive(): UseGeminiLive {
     setTranscript([]);
     opBufRef.current = '';
     agentBufRef.current = '';
+    greetedRef.current = false;
     setPartialOperator('');
     setPartialAgent('');
 
@@ -225,13 +240,16 @@ export function useGeminiLive(): UseGeminiLive {
           },
           onmessage: handleMessage,
           onerror: (e: any) => {
+            console.error('[useGeminiLive] session error', e);
             if (closingRef.current) return;
             setError(e?.message || 'Live session error');
             setStatus('error');
           },
-          onclose: () => {
+          onclose: (e: any) => {
+            console.warn('[useGeminiLive] session closed', e?.code, e?.reason);
             if (closingRef.current) return;
             teardown();
+            setError(e?.reason ? `Gemini closed the session: ${e.reason}` : null);
             setStatus('idle');
           },
         },
@@ -256,8 +274,10 @@ export function useGeminiLive(): UseGeminiLive {
   const sendFrame = useCallback((jpeg: string) => {
     if (!sessionRef.current || !jpeg) return;
     try {
+      // Must be `video` (not the deprecated `media` -> realtime_input.media_chunks,
+      // which the Live API now rejects and closes the session over).
       sessionRef.current.sendRealtimeInput({
-        media: { data: stripDataUrl(jpeg), mimeType: 'image/jpeg' },
+        video: { data: stripDataUrl(jpeg), mimeType: 'image/jpeg' },
       });
     } catch {
       /* socket closed */

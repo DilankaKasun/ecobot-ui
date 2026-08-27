@@ -136,16 +136,18 @@ export const LiveAgentView: React.FC = () => {
 
   return (
     <div className="w-full h-full flex flex-col lg:flex-row gap-4 min-h-0 overflow-hidden">
-      {/* --- LEFT: what the agent sees --- */}
-      <div className="flex-1 min-h-0 flex flex-col gap-3 order-1">
-        <div className="relative flex-1 min-h-0 rounded-xl overflow-hidden border border-white/5 bg-black/60 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)]">
-          {/* video */}
+      {/* --- LEFT: agent view — a 16:9 box centered in its half of the row --- */}
+      <div className="order-1 flex min-h-0 min-w-0 flex-1 flex-col gap-3">
+        {/* stage fills the available area; the box inside keeps 16:9 */}
+        <div className="relative flex min-h-0 w-full flex-1 items-center justify-center">
+        <div className="relative aspect-video w-full max-h-full overflow-hidden rounded-xl border border-white/5 bg-black/60 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)]">
+          {/* video — absolutely positioned so its intrinsic size never grows the panel */}
           <video
             ref={videoRef}
             autoPlay
             playsInline
             muted
-            className="w-full h-full object-contain"
+            className="absolute inset-0 h-full w-full object-contain"
           />
           <canvas ref={canvasRef} className="hidden" />
 
@@ -219,6 +221,7 @@ export const LiveAgentView: React.FC = () => {
             </div>
           </div>
         </div>
+        </div>
 
         {/* control bar */}
         <div className="shrink-0 flex flex-wrap items-center justify-center gap-2">
@@ -263,8 +266,8 @@ export const LiveAgentView: React.FC = () => {
         )}
       </div>
 
-      {/* --- RIGHT: transcript --- */}
-      <div className="order-2 lg:w-80 shrink-0 flex flex-col min-h-0 max-h-[32vh] lg:max-h-none rounded-xl border border-white/5 bg-card/20 backdrop-blur-md shadow-[0_8px_32px_0_rgba(0,0,0,0.3)]">
+      {/* --- RIGHT: transcript — fills the width the video panel doesn't use --- */}
+      <div className="order-2 flex min-h-0 min-w-0 flex-1 flex-col rounded-xl border border-white/5 bg-card/20 backdrop-blur-md shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] max-h-[32vh] lg:max-h-none lg:min-w-[260px]">
         <div className="px-4 py-3 border-b border-white/5 flex items-center gap-2">
           <Bot className="w-4 h-4 text-primary" />
           <h2 className="text-sm font-bold text-gray-100">Conversation</h2>
