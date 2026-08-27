@@ -32,6 +32,7 @@ interface LiveKitContextType {
   videoTracks: VideoTrackInfo[];
   mainCameraTrack: RemoteTrack | null;
   wristCameraTrack: RemoteTrack | null;
+  detectionOverlayTrack: RemoteTrack | null;
   connect: (customUrl?: string, customToken?: string, customRoom?: string) => Promise<void>;
   disconnect: () => void;
   sendData: (data: string | object, topic?: string) => Promise<void>;
@@ -42,9 +43,12 @@ interface LiveKitContextType {
 
 const LiveKitContext = createContext<LiveKitContextType | undefined>(undefined);
 
+const DEFAULT_LIVEKIT_URL = process.env.NEXT_PUBLIC_LIVEKIT_URL || 'wss://govimithuru-agent-c8j0bu7s.livekit.cloud';
+const DEFAULT_ROOM_NAME = process.env.NEXT_PUBLIC_LIVEKIT_ROOM || 'ecobot-control';
+
 export const LiveKitProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [livekitUrl, setLivekitUrlState] = useState<string>(process.env.NEXT_PUBLIC_LIVEKIT_URL || 'wss://govimithuru-agent-c8j0bu7s.livekit.cloud');
-  const [roomName, setRoomNameState] = useState<string>(process.env.NEXT_PUBLIC_LIVEKIT_ROOM || 'ecobot-control');
+  const [livekitUrl, setLivekitUrlState] = useState<string>(DEFAULT_LIVEKIT_URL);
+  const [roomName, setRoomNameState] = useState<string>(DEFAULT_ROOM_NAME);
   const [token, setTokenState] = useState<string>('');
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isConnecting, setIsConnecting] = useState<boolean>(false);
@@ -53,19 +57,6 @@ export const LiveKitProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [videoTracks, setVideoTracks] = useState<VideoTrackInfo[]>([]);
 
   const roomRef = useRef<Room | null>(null);
-
-  // Load configuration from localStorage or env on mount
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedUrl = localStorage.getItem('ecobot_livekit_url') || process.env.NEXT_PUBLIC_LIVEKIT_URL || 'wss://govimithuru-agent-c8j0bu7s.livekit.cloud';
-      const savedRoom = localStorage.getItem('ecobot_livekit_room') || process.env.NEXT_PUBLIC_LIVEKIT_ROOM || 'ecobot-control';
-      const savedToken = localStorage.getItem('ecobot_livekit_token') || '';
-
-      if (savedUrl) setLivekitUrlState(savedUrl);
-      if (savedRoom) setRoomNameState(savedRoom);
-      if (savedToken) setTokenState(savedToken);
-    }
-  }, []);
 
   const setLivekitUrl = (url: string) => {
     setLivekitUrlState(url);
@@ -107,29 +98,30 @@ export const LiveKitProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const connect = useCallback(async (customUrl?: string, customToken?: string, customRoom?: string) => {
-    const targetUrl = customUrl || livekitUrl || process.env.NEXT_PUBLIC_LIVEKIT_URL || '';
-    let targetToken = customToken || token;
-    const targetRoom = customRoom || roomName || 'ecobot-teleop';
+    const targetUrl = (customUrl || livekitUrl || DEFAULT_LIVEKIT_URL).trim();
+    let targetToken = (customToken || token).trim();
+    const targetRoom = (customRoom || roomName || DEFAULT_ROOM_NAME).trim();
 
     if (!targetUrl) {
       setError('LiveKit URL not configured. Enter a valid LiveKit WebSocket URL (wss://...).');
       return;
     }
 
-    // If no token provided, try fetching one from /api/livekit-token
+    // If no token provided, fetch one dynamically from /api/livekit-token
     if (!targetToken) {
       try {
+        console.log(`[LiveKit] Minting access token for room '${targetRoom}'...`);
         const res = await fetch(`/api/livekit-token?room=${encodeURIComponent(targetRoom)}`);
         const data = await res.json();
         if (data.token) {
           targetToken = data.token;
-          setToken(data.token);
+          setTokenState(data.token);
         } else if (data.error) {
-          setError(`Token generation error: ${data.error}. Enter a token manually in Settings.`);
+          setError(`Token generation error: ${data.error}`);
           return;
         }
       } catch (e: any) {
-        setError('Failed to fetch token from backend. Please provide token manually.');
+        setError('Failed to fetch token from backend. Check API keys or provide token manually.');
         return;
       }
     }
@@ -145,8 +137,14 @@ export const LiveKitProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       // Clean up previous room if exists
       if (roomRef.current) {
-        await roomRef.current.disconnect();
+        try {
+          await roomRef.current.disconnect();
+        } catch (e) {
+          // ignore
+        }
       }
+
+      console.log(`[LiveKit] Connecting to ${targetUrl} (Room: ${targetRoom})...`);
 
       const room = new Room({
         adaptiveStream: true,
@@ -160,6 +158,7 @@ export const LiveKitProvider: React.FC<{ children: React.ReactNode }> = ({ child
       });
 
       room.on(RoomEvent.Connected, () => {
+        console.log(`[LiveKit] Connected to room: ${targetRoom}`);
         setIsConnected(true);
         setIsConnecting(false);
         setError(null);
@@ -167,12 +166,14 @@ export const LiveKitProvider: React.FC<{ children: React.ReactNode }> = ({ child
       });
 
       room.on(RoomEvent.Disconnected, () => {
+        console.log(`[LiveKit] Disconnected from room: ${targetRoom}`);
         setIsConnected(false);
         setIsConnecting(false);
         setVideoTracks([]);
       });
 
-      room.on(RoomEvent.TrackSubscribed, () => {
+      room.on(RoomEvent.TrackSubscribed, (track, pub, participant) => {
+        console.log(`[LiveKit] Track subscribed: ${pub.trackName || pub.trackSid} from ${participant.identity}`);
         updateTracks(room);
       });
 
@@ -188,17 +189,20 @@ export const LiveKitProvider: React.FC<{ children: React.ReactNode }> = ({ child
         updateTracks(room);
       });
 
-      room.on(RoomEvent.ParticipantConnected, () => {
+      room.on(RoomEvent.ParticipantConnected, (participant) => {
+        console.log(`[LiveKit] Participant connected: ${participant.identity}`);
         updateTracks(room);
       });
 
-      room.on(RoomEvent.ParticipantDisconnected, () => {
+      room.on(RoomEvent.ParticipantDisconnected, (participant) => {
+        console.log(`[LiveKit] Participant disconnected: ${participant.identity}`);
         updateTracks(room);
       });
 
       await room.connect(targetUrl, targetToken);
       roomRef.current = room;
     } catch (err: any) {
+      console.warn('[LiveKit Connection Error]', err);
       setError(err?.message || 'Failed to connect to LiveKit room');
       setIsConnected(false);
       setIsConnecting(false);
@@ -214,6 +218,32 @@ export const LiveKitProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setIsConnecting(false);
     setVideoTracks([]);
   }, []);
+
+  // Auto-connect on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedUrl = localStorage.getItem('ecobot_livekit_url');
+      const savedRoom = localStorage.getItem('ecobot_livekit_room');
+      const savedToken = localStorage.getItem('ecobot_livekit_token');
+
+      // Clear any legacy 'ecobot-teleop' value in localStorage so it always uses 'ecobot-control'
+      let room = savedRoom;
+      if (room === 'ecobot-teleop') {
+        room = DEFAULT_ROOM_NAME;
+        localStorage.setItem('ecobot_livekit_room', DEFAULT_ROOM_NAME);
+      }
+
+      const url = (savedUrl || DEFAULT_LIVEKIT_URL).trim();
+      const effectiveRoom = (room || DEFAULT_ROOM_NAME).trim();
+
+      if (url) setLivekitUrlState(url);
+      if (effectiveRoom) setRoomNameState(effectiveRoom);
+      if (savedToken) setTokenState(savedToken);
+
+      // Connect automatically
+      connect(url, savedToken || '', effectiveRoom);
+    }
+  }, [connect]);
 
   const sendData = useCallback(async (data: string | object, topic?: string) => {
     if (!roomRef.current || !isConnected) return;
@@ -245,6 +275,12 @@ export const LiveKitProvider: React.FC<{ children: React.ReactNode }> = ({ child
       t.trackName.toLowerCase().includes('arm')
   )?.track || (videoTracks.length > 1 ? videoTracks[1].track : null);
 
+  const detectionOverlayTrack = videoTracks.find(
+    (t) =>
+      t.trackName.toLowerCase().includes('detection') ||
+      t.trackName.toLowerCase().includes('overlay')
+  )?.track || null;
+
   return (
     <LiveKitContext.Provider
       value={{
@@ -259,6 +295,7 @@ export const LiveKitProvider: React.FC<{ children: React.ReactNode }> = ({ child
         videoTracks,
         mainCameraTrack,
         wristCameraTrack,
+        detectionOverlayTrack,
         connect,
         disconnect,
         sendData,

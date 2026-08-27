@@ -2,10 +2,13 @@
 
 import React, { useState } from 'react';
 import { useRos } from '@/hooks/useRos';
-import { ShieldCheck, RefreshCw, WifiOff, Wifi, Battery } from 'lucide-react';
+import { useLiveKit } from '@/hooks/useLiveKit';
+import { ShieldCheck, RefreshCw, WifiOff, Wifi, Radio } from 'lucide-react';
+import Link from 'next/link';
 
 export const Navbar: React.FC = () => {
   const { isConnected, operatorMode, setOperatorMode, robotHost, setRobotHost } = useRos();
+  const { isConnected: isLiveKitConnected, isConnecting: isLiveKitConnecting, roomName } = useLiveKit();
   const [isEditingIp, setIsEditingIp] = useState(false);
   const [tempIp, setTempIp] = useState(robotHost);
 
@@ -26,6 +29,22 @@ export const Navbar: React.FC = () => {
             </span>
           </h1>
         </div>
+
+        {/* LiveKit Cloud Status Badge */}
+        <Link
+          href="/settings"
+          className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-mono font-semibold transition-all border ${
+            isLiveKitConnected
+              ? 'bg-primary/10 border-primary/40 text-primary shadow-[0_0_10px_rgba(0,229,192,0.2)]'
+              : isLiveKitConnecting
+                ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+                : 'bg-card/30 border-white/5 text-gray-500 hover:text-gray-300'
+          }`}
+          title={`LiveKit Room: ${roomName}`}
+        >
+          <Radio className={`w-3 h-3 ${isLiveKitConnected ? 'animate-pulse' : isLiveKitConnecting ? 'animate-spin' : ''}`} />
+          <span>{isLiveKitConnected ? `LiveKit (${roomName})` : isLiveKitConnecting ? 'Connecting LiveKit...' : 'LiveKit Offline'}</span>
+        </Link>
       </div>
 
       <div className="flex items-center gap-6">
