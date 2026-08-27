@@ -44,10 +44,13 @@ export const GEMINI_LIVE_CONFIG = {
     'detection overlay) - adapt immediately when they do. You cannot drive or ' +
     'move the robot yourself; describe and advise only.',
 
-  // Sent as a hidden user turn once the session is ready, so the agent opens
-  // the conversation instead of waiting silently.
+  // Sent as realtime text once the session is ready, so the agent opens the
+  // conversation instead of waiting silently. gemini-*-live-preview models do
+  // NOT respond to a clientContent turn used purely to trigger a reply (see the
+  // govimithuru-core generate_reply monkey patch) — realtime text + automatic
+  // activity detection is what actually produces the opening turn.
   GREETING_PROMPT:
     '(සම්බන්ධතාවය දැන් ආරම්භ විය. ක්‍රියාකරු තවම කතා කර නැත. ඔවුන්ට සිංහලෙන් ' +
     'උණුසුම් ලෙස කෙටියෙන් ආයුබෝවන් කියා, රොබෝවාගේ කැමරාව හරහා ඔබට උදව් කළ ' +
-    'හැකි දේ එක් කෙටි වාක්‍යයකින් පවසන්න.)',
+    'හැකි දේ එක් කෙටි වාක්‍යයකින් පවසන්න.)\n\nRespond in a single concise turn.',
 };

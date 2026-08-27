@@ -58,6 +58,26 @@ export function useGeminiLive(): UseGeminiLive {
   const agentBufRef = useRef('');
   const closingRef = useRef(false);
   const greetedRef = useRef(false);
+  const greetAckedRef = useRef(false);
+  const greetTimersRef = useRef<number[]>([]);
+
+  const clearGreetTimers = () => {
+    greetTimersRef.current.forEach((t) => clearTimeout(t));
+    greetTimersRef.current = [];
+  };
+
+  // gemini-*-live-preview won't produce an opening turn from a clientContent
+  // message — it needs realtime text (see govimithuru-core's generate_reply
+  // monkey patch). Fire shortly after setup, with one retry if the agent stays
+  // silent.
+  const sendGreeting = useCallback(() => {
+    if (closingRef.current) return;
+    try {
+      sessionRef.current?.sendRealtimeInput({ text: GEMINI_LIVE_CONFIG.GREETING_PROMPT });
+    } catch {
+      /* not ready */
+    }
+  }, []);
 
   useEffect(() => {
     mutedRef.current = muted;
@@ -84,6 +104,7 @@ export function useGeminiLive(): UseGeminiLive {
 
   const teardown = useCallback(() => {
     closingRef.current = true;
+    clearGreetTimers();
     try {
       sessionRef.current?.close?.();
     } catch {
@@ -119,14 +140,12 @@ export function useGeminiLive(): UseGeminiLive {
       // Once the session config is accepted, nudge the agent to greet first.
       if (msg?.setupComplete && !greetedRef.current) {
         greetedRef.current = true;
-        try {
-          sessionRef.current?.sendClientContent({
-            turns: [{ role: 'user', parts: [{ text: GEMINI_LIVE_CONFIG.GREETING_PROMPT }] }],
-            turnComplete: true,
-          });
-        } catch {
-          /* not ready */
-        }
+        greetTimersRef.current.push(
+          window.setTimeout(sendGreeting, 600),
+          window.setTimeout(() => {
+            if (!greetAckedRef.current) sendGreeting();
+          }, 5000)
+        );
       }
 
       const sc = msg?.serverContent;
@@ -136,6 +155,7 @@ export function useGeminiLive(): UseGeminiLive {
       for (let i = 0; i < parts.length; i++) {
         const inline = parts[i]?.inlineData;
         if (inline?.data && String(inline.mimeType || '').indexOf('audio/pcm') === 0) {
+          greetAckedRef.current = true;
           const buf = base64ToArrayBuffer(inline.data);
           playerRef.current?.port.postMessage({ type: 'audio', buffer: buf }, [buf]);
           if (!closingRef.current) setStatus('speaking');
@@ -156,6 +176,7 @@ export function useGeminiLive(): UseGeminiLive {
       }
       const outT = sc?.outputTranscription?.text;
       if (outT) {
+        greetAckedRef.current = true;
         agentBufRef.current += outT;
         setPartialAgent(agentBufRef.current);
       }
@@ -168,7 +189,7 @@ export function useGeminiLive(): UseGeminiLive {
         if (!closingRef.current) setStatus('listening');
       }
     },
-    [flushTranscript]
+    [flushTranscript, sendGreeting]
   );
 
   const connect = useCallback(async () => {
@@ -180,6 +201,8 @@ export function useGeminiLive(): UseGeminiLive {
     opBufRef.current = '';
     agentBufRef.current = '';
     greetedRef.current = false;
+    greetAckedRef.current = false;
+    clearGreetTimers();
     setPartialOperator('');
     setPartialAgent('');
 
@@ -287,10 +310,9 @@ export function useGeminiLive(): UseGeminiLive {
   const sendNote = useCallback((text: string) => {
     if (!sessionRef.current || !text) return;
     try {
-      sessionRef.current.sendClientContent({
-        turns: [{ role: 'user', parts: [{ text }] }],
-        turnComplete: false,
-      });
+      // Realtime text for the same reason as the greeting — live-preview models
+      // act on realtime input, not on a clientContent context turn.
+      sessionRef.current.sendRealtimeInput({ text });
     } catch {
       /* socket closed */
     }
