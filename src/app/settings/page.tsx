@@ -9,6 +9,7 @@ export default function SettingsPage() {
   const { robotHost, streamHost, setRobotHost, setStreamHost, isConnected, resolvedRosUrl } = useRos();
   const [hostInput, setHostInput] = useState(robotHost);
   const [streamHostInput, setStreamHostInput] = useState(streamHost);
+  const [cameraSourceInput, setCameraSourceInput] = useState("");
   const [savedSuccess, setSavedSuccess] = useState(false);
 
   useEffect(() => {
@@ -18,10 +19,24 @@ export default function SettingsPage() {
 
   const isHttpsPage = typeof window !== 'undefined' && window.location.protocol === 'https:';
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setRobotHost(hostInput.trim());
     setStreamHost(streamHostInput.trim());
+    
+    // Tell the Python YOLO backend to start watching this video feed
+    if (cameraSourceInput.trim()) {
+      try {
+        await fetch('http://localhost:8081/api/set-camera', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: cameraSourceInput.trim() }),
+        });
+      } catch (err) {
+        console.warn("Could not push camera URL to local YOLO engine.");
+      }
+    }
+    
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 3000);
   };
@@ -88,7 +103,7 @@ export default function SettingsPage() {
               type="text"
               value={hostInput}
               onChange={(e) => setHostInput(e.target.value)}
-              placeholder="192.168.8.105 or wss://win-associates-harper-scheduled.trycloudflare.com"
+              placeholder="wss://functional-hugh-focusing-hierarchy.trycloudflare.com"
               className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-blue-500"
             />
             {resolvedRosUrl && (
@@ -107,11 +122,27 @@ export default function SettingsPage() {
               type="text"
               value={streamHostInput}
               onChange={(e) => setStreamHostInput(e.target.value)}
-              placeholder="192.168.8.105"
+              placeholder="localhost (Leave as localhost if running YOLO locally)"
               className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-blue-500"
             />
             <p className="text-[11px] font-mono text-gray-400 mt-1">
-              Used for MJPEG video stream URLs (e.g. <code className="text-blue-300 font-semibold">http://{streamHostInput || '192.168.8.105'}:8081/stream.mjpg</code>)
+              Used for MJPEG video stream URLs (e.g. <code className="text-blue-300 font-semibold">http://{streamHostInput || 'localhost'}:8081/stream.mjpg</code>)
+            </p>
+          </div>
+
+          <div className="pt-2 border-t border-card-border">
+            <div className="flex justify-between items-center mb-1 mt-2">
+              <label className="block text-xs text-blue-400 font-bold">3. Robot Cloudflare Video Link (Sends to YOLO)</label>
+            </div>
+            <input
+              type="text"
+              value={cameraSourceInput}
+              onChange={(e) => setCameraSourceInput(e.target.value)}
+              placeholder="https://your-cloudflare-link.trycloudflare.com/stream.mjpg"
+              className="w-full bg-blue-900/20 border border-blue-500/30 rounded-lg px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-blue-400 placeholder:text-gray-500"
+            />
+            <p className="text-[11px] font-mono text-gray-400 mt-1">
+              Paste the Cloudflare link here. The Frontend will send this to the YOLO model to process.
             </p>
           </div>
         </div>
@@ -138,7 +169,7 @@ export default function SettingsPage() {
             }}
             className="px-3 py-2 bg-card-border hover:bg-gray-700 text-gray-200 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
           >
-            Set Local Default (192.168.8.105)
+            Reset to Default Robot
           </button>
         </div>
       </form>

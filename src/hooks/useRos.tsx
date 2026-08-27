@@ -4,6 +4,12 @@ import React, { createContext, useContext, useEffect, useState, useRef, useCallb
 import ROSLIB from 'roslib';
 import { ROS_CONFIG } from '@/lib/ros-config';
 
+export interface BoundingBox {
+  class: string;
+  confidence: number;
+  bbox: [number, number, number, number]; // [x1, y1, x2, y2]
+}
+
 interface RosContextType {
   ros: ROSLIB.Ros | null;
   isConnected: boolean;
@@ -14,6 +20,7 @@ interface RosContextType {
   isMixedContentWarning: boolean;
   connectionError: string | null;
   operatorMode: 'operator' | 'observer';
+  detections: BoundingBox[];
   setOperatorMode: (mode: 'operator' | 'observer') => void;
   setRobotHost: (host: string) => void;
   setStreamHost: (host: string) => void;
@@ -104,6 +111,7 @@ export const RosProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isConnecting, setIsConnecting] = useState<boolean>(true);
+  const [detections, setDetections] = useState<any[]>([]);
   const rosRef = useRef<ROSLIB.Ros | null>(null);
 
   // Initialize host dynamically from browser URL query param, saved setting, env vars, or default
@@ -139,8 +147,6 @@ export const RosProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setStreamHostState(savedStreamHost);
       } else if (envStreamHost) {
         setStreamHostState(envStreamHost);
-      } else if (isTunnelHost(targetHost)) {
-        setStreamHostState(ROS_CONFIG.DEFAULT_ROBOT_HOST);
       } else {
         setStreamHostState(targetHost);
       }
@@ -159,11 +165,7 @@ export const RosProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       localStorage.setItem('ecobot_robot_host', newHost);
       const savedStreamHost = localStorage.getItem('ecobot_stream_host');
       if (!savedStreamHost) {
-        if (isTunnelHost(newHost)) {
-          setStreamHostState(ROS_CONFIG.DEFAULT_ROBOT_HOST);
-        } else {
-          setStreamHostState(newHost);
-        }
+        setStreamHostState(newHost);
       }
     }
   };
@@ -184,6 +186,16 @@ export const RosProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   useEffect(() => {
     if (!robotHost) return;
+
+    if (robotHost === 'mock') {
+      console.log(`[RosProvider] Initializing MOCK mode...`);
+      setIsConnected(true);
+      setIsConnecting(false);
+      setConnectionError(null);
+      setResolvedRosUrl('mock://local');
+      setIsMixedContentWarning(false);
+      return;
+    }
 
     const resolved = resolveRosUrl(robotHost);
     setResolvedRosUrl(resolved.url);
@@ -248,6 +260,10 @@ export const RosProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [robotHost]);
 
   const publish = useCallback((topicName: string, messageType: string, messageData: any) => {
+    if (robotHost === 'mock') {
+      console.log(`[Mock Publish] ${topicName}`, messageData);
+      return;
+    }
     if (!rosRef.current || !isConnected) return;
     if (operatorMode === 'observer') {
       console.warn(`[RosProvider] Blocked publish to ${topicName} because dashboard is in Observer (View Only) mode.`);
@@ -260,9 +276,36 @@ export const RosProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
     const rosMsg = new ROSLIB.Message(messageData);
     topic.publish(rosMsg);
-  }, [isConnected, operatorMode]);
+  }, [isConnected, operatorMode, robotHost]);
 
   const subscribe = useCallback((topicName: string, messageType: string, callback: (message: any) => void) => {
+    if (robotHost === 'mock') {
+      const interval = setInterval(() => {
+        if (topicName === ROS_CONFIG.TOPICS.ODOM) {
+          callback({
+            pose: { pose: { position: { x: Math.sin(Date.now() / 2000) * 2, y: Math.cos(Date.now() / 2000) * 2 }, orientation: { w: 1, z: 0 } } },
+            twist: { twist: { linear: { x: 0.5 }, angular: { z: 0.1 } } }
+          });
+        }
+        else if (topicName === ROS_CONFIG.TOPICS.ARM_STATUS) {
+          callback({
+            data: JSON.stringify({ state: 'READY', joints: { base: 45, shoulder: -30, elbow: 90, wrist: 0 }, end_effector: { x: 1, y: 2, z: 3 }, gripper: 'open' })
+          });
+        }
+        else if (topicName === ROS_CONFIG.TOPICS.HARDWARE_STATUS) {
+          callback({
+            data: JSON.stringify({ overall: 'OK', system: { cpu_temp: 45, cpu_load: 20, ram_used: 40 } })
+          });
+        }
+        else if (topicName === ROS_CONFIG.TOPICS.TOF_RANGES) {
+          callback({
+            data: JSON.stringify({ left: Math.random() * 0.5, right: Math.random() * 0.5 })
+          });
+        }
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+
     if (!rosRef.current) return () => {};
     const topic = new ROSLIB.Topic({
       ros: rosRef.current,
@@ -279,10 +322,15 @@ export const RosProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         // ignore
       }
     };
-  }, []);
+  }, [robotHost]);
 
   const callService = useCallback((serviceName: string, serviceType: string, request: any = {}) => {
     return new Promise<any>((resolve, reject) => {
+      if (robotHost === 'mock') {
+        console.log(`[Mock Service Call] ${serviceName}`, request);
+        setTimeout(() => resolve({ success: true, message: 'Mocked service success' }), 500);
+        return;
+      }
       if (!rosRef.current || !isConnected) {
         reject(new Error('Not connected to ROS'));
         return;
@@ -299,7 +347,7 @@ export const RosProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         reject(e);
       }
     });
-  }, [isConnected]);
+  }, [isConnected, robotHost]);
 
   return (
     <RosContext.Provider
@@ -313,6 +361,7 @@ export const RosProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isMixedContentWarning,
         connectionError,
         operatorMode,
+        detections,
         setOperatorMode,
         setRobotHost,
         setStreamHost,
