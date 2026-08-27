@@ -7,6 +7,7 @@ import { LiveKitVideoPlayer } from '@/components/video/LiveKitVideoPlayer';
 import { useOdometry } from '@/hooks/useOdometry';
 import { resolveStreamUrl } from '@/components/video/CameraFeed';
 import { DualCameraView } from '@/components/video/DualCameraView';
+import { BotanicalDescription } from '@/components/video/BotanicalDescription';
 import { Map2DCanvas } from '@/components/map/Map2DCanvas';
 import { VirtualJoystick } from '@/components/teleop/VirtualJoystick';
 import { KeyboardTeleop } from '@/components/teleop/KeyboardTeleop';
@@ -44,8 +45,8 @@ export default function DashboardPage() {
   // Panels minimize/expand state
   const [collapsed, setCollapsed] = useState({
     data: false,
-    map: false,
-    cam: false,
+    map: true,
+    cam: true,
   });
 
   const toggleCollapse = (key: keyof typeof collapsed) => {
@@ -60,6 +61,7 @@ export default function DashboardPage() {
   const [refreshKey, setRefreshKey] = useState<number>(0);
   const [bgStreamError, setBgStreamError] = useState<boolean>(false);
   const [pipStreamError, setPipStreamError] = useState<boolean>(false);
+  const [detectedPlants, setDetectedPlants] = useState<any[]>([]);
 
   // ROS Topic image data fallback
   const [mainRosImage, setMainRosImage] = useState<string | null>(null);
@@ -152,6 +154,7 @@ export default function DashboardPage() {
                 className="w-full h-full"
                 showStats={true}
                 trackName={isSwapped ? 'wrist_camera' : 'realsense_camera'}
+                onPlantDetected={setDetectedPlants}
               />
             </div>
           ) : bgRosImage ? (
@@ -197,87 +200,30 @@ export default function DashboardPage() {
         </div>
       ) : (
         /* --- MAIN HUD GRID --- */
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-full relative z-10 p-2 overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-full relative z-10 p-2 overflow-hidden pointer-events-none">
           
           {/* LEFT COLUMN: Data Overview & Real 2D Map */}
-          <div className="lg:col-span-3 flex flex-col gap-4 z-10 h-full overflow-hidden">
+          <div className="lg:col-span-3 flex flex-col gap-4 z-10 h-full overflow-hidden pointer-events-auto">
             
             {/* Data Overview Panel */}
-            <div className="bg-card/20 backdrop-blur-md border border-white/5 rounded-xl p-4 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] flex flex-col transition-all duration-300">
-              <div className="flex items-center justify-between text-gray-300 cursor-pointer select-none" onClick={() => toggleCollapse('data')}>
-                <h2 className="text-sm font-bold tracking-wide">Data Overview</h2>
-                <div className="flex items-center gap-2">
-                  <Info className="w-4 h-4 text-gray-500" />
-                  {collapsed.data ? <ChevronDown className="w-4 h-4 text-gray-500" /> : <ChevronUp className="w-4 h-4 text-gray-500" />}
+            {detectedPlants.length > 0 && (
+              <div className="flex flex-col transition-all duration-300 animate-[fade-in-down_0.4s_ease-out_forwards] p-4 mt-16 bg-black/10 rounded-xl">
+                <div className="flex items-center justify-between text-green-400 cursor-pointer select-none mb-2" onClick={() => toggleCollapse('data')}>
+                  <h2 className="text-base font-bold tracking-widest uppercase">
+                    Botanical Log
+                  </h2>
+                  <div className="flex items-center gap-2">
+                    <Info className="w-4 h-4 text-gray-500" />
+                    {collapsed.data ? <ChevronDown className="w-4 h-4 text-gray-500" /> : <ChevronUp className="w-4 h-4 text-gray-500" />}
+                  </div>
+                </div>
+
+                <div className={`flex flex-col gap-3 transition-all duration-300 overflow-hidden ${collapsed.data ? 'max-h-0 opacity-0 mt-0' : 'max-h-[500px] opacity-100 mt-4'}`}>
+                  <BotanicalDescription label={detectedPlants[0].label} />
                 </div>
               </div>
+            )}
 
-              <div className={`flex flex-col gap-3 transition-all duration-300 overflow-hidden ${collapsed.data ? 'max-h-0 opacity-0 mt-0' : 'max-h-[500px] opacity-100 mt-4'}`}>
-                {/* Position */}
-                <div className="space-y-1 pb-3 border-b border-card-border/40">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-400 font-mono">Position (X, Y)</span>
-                    <Crosshair className="w-3.5 h-3.5 text-primary" />
-                  </div>
-                  <div className="flex items-baseline gap-1.5 font-mono text-gray-200">
-                    <span className="text-lg">{formatNum(odom.x)}, {formatNum(odom.y)}</span>
-                    <span className="text-xs text-gray-500">m</span>
-                  </div>
-                </div>
-
-                {/* Linear Velocity */}
-                <div className="space-y-1 pb-3 border-b border-card-border/40">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-400 font-mono">Linear Velocity</span>
-                    <div className="w-4 h-2 rounded-t-full border-t-2 border-x-2 border-primary opacity-80" />
-                  </div>
-                  <div className="flex items-baseline gap-1.5 font-mono">
-                    <span className="text-lg text-primary font-bold">{formatNum(odom.linearVelocity)}</span>
-                    <span className="text-xs text-gray-400">m/s</span>
-                  </div>
-                </div>
-
-                {/* Angular Velocity */}
-                <div className="space-y-1 pb-3 border-b border-card-border/40">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-400 font-mono">Angular Velocity</span>
-                    <Activity className="w-3.5 h-3.5 text-purple" />
-                  </div>
-                  <div className="flex items-baseline gap-1.5 font-mono">
-                    <span className="text-lg text-purple font-bold">{formatNum(odom.angularVelocity)}</span>
-                    <span className="text-xs text-gray-400">rad/s</span>
-                  </div>
-                </div>
-
-                {/* Controller Mode */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-400 font-mono">Controller Mode</span>
-                    <Zap className="w-3.5 h-3.5 text-danger" />
-                  </div>
-                  <div className="inline-block px-2 py-0.5 border border-danger/30 rounded text-[9px] text-danger/80 font-mono tracking-wider">
-                    {runMode === 0 ? 'RC REMOTE' : 'AUTONOMOUS'}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* 2D Navigation Map Panel */}
-            <div className={`bg-card/20 backdrop-blur-md border border-white/5 rounded-xl p-3 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] flex flex-col transition-all duration-300 ${!collapsed.map ? 'flex-1 min-h-0 overflow-y-auto' : ''}`}>
-              <div className="flex items-center justify-between text-gray-300 cursor-pointer select-none mb-1" onClick={() => toggleCollapse('map')}>
-                <h2 className="text-sm font-bold tracking-wide flex items-center gap-2">
-                  <svg className="w-4 h-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
-                  2D Navigation Map
-                </h2>
-                <div className="flex items-center gap-2">
-                  {collapsed.map ? <ChevronDown className="w-4 h-4 text-gray-500" /> : <ChevronUp className="w-4 h-4 text-gray-500" />}
-                </div>
-              </div>
-
-              <div className={`transition-all duration-300 flex flex-col overflow-hidden ${collapsed.map ? 'max-h-0 opacity-0 mt-0 flex-none' : 'max-h-[800px] opacity-100 mt-2 flex-1'}`}>
-                <Map2DCanvas />
-              </div>
-            </div>
           </div>
 
           {/* CENTER COLUMN: Radar & Status */}
@@ -305,7 +251,7 @@ export default function DashboardPage() {
           </div>
 
           {/* RIGHT COLUMN: Wrist Cam & Active Drawer Overlay */}
-          <div className="lg:col-span-3 flex flex-col justify-end z-10 h-full overflow-hidden">
+          <div className="lg:col-span-3 flex flex-col justify-end gap-4 z-10 h-full overflow-hidden pointer-events-auto">
             <div className="bg-card/20 backdrop-blur-md border border-white/5 rounded-xl p-4 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] flex flex-col transition-all duration-300">
               <div className="flex items-center justify-between text-xs cursor-pointer select-none" onClick={() => toggleCollapse('cam')}>
                 <span className="text-gray-400 font-mono">{pipLabel}</span>
@@ -350,6 +296,7 @@ export default function DashboardPage() {
                       objectFit="cover"
                       className="w-full h-full transition-transform duration-300 group-hover:scale-105"
                       trackName={isSwapped ? 'realsense_camera' : 'wrist_camera'}
+                      enableAiVision={false}
                     />
                   ) : pipRosImage ? (
                     <img 
@@ -390,108 +337,29 @@ export default function DashboardPage() {
               </div>
               
             </div>
-          </div>
 
-        </div>
-      )}
-
-      {/* --- FLOATING BOTTOM ACTION TOOLBAR --- */}
-      <div className="relative z-30 flex items-center justify-center px-4 pb-2">
-        <div className="bg-card/40 backdrop-blur-xl border border-white/10 rounded-2xl p-1.5 shadow-[0_8px_32px_0_rgba(0,0,0,0.5)] flex items-center gap-2">
-          <button
-            onClick={() => setActiveTab((t) => (t === 'teleop' ? 'none' : 'teleop'))}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
-              activeTab === 'teleop'
-                ? 'bg-primary text-black font-bold shadow-[0_0_15px_rgba(0,229,192,0.4)]'
-                : 'text-gray-300 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <Gamepad2 className="w-4 h-4" />
-            <span>Driving Controls</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab((t) => (t === 'perception' ? 'none' : 'perception'))}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
-              activeTab === 'perception'
-                ? 'bg-primary text-black font-bold shadow-[0_0_15px_rgba(0,229,192,0.4)]'
-                : 'text-gray-300 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <Target className="w-4 h-4" />
-            <span>Perception & Radar</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab((t) => (t === 'diagnostics' ? 'none' : 'diagnostics'))}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
-              activeTab === 'diagnostics'
-                ? 'bg-primary text-black font-bold shadow-[0_0_15px_rgba(0,229,192,0.4)]'
-                : 'text-gray-300 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <Stethoscope className="w-4 h-4" />
-            <span>Diagnostics</span>
-          </button>
-
-          <div className="h-4 w-px bg-white/10 mx-1" />
-
-          <button
-            onClick={() => setViewMode((m) => (m === 'hud' ? 'dual_grid' : 'hud'))}
-            className="px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 text-gray-300 hover:text-white hover:bg-white/5 transition-all"
-            title="Toggle Dual Camera Grid"
-          >
-            <LayoutGrid className="w-4 h-4" />
-            <span>{viewMode === 'hud' ? 'Dual Grid' : 'HUD View'}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* --- COLLAPSIBLE TOOLBAR DRAWER / MODAL --- */}
-      {activeTab !== 'none' && (
-        <div className="absolute inset-x-4 bottom-16 z-40 max-w-4xl mx-auto bg-card/90 backdrop-blur-2xl border border-white/15 rounded-2xl p-4 shadow-[0_16px_48px_0_rgba(0,0,0,0.7)] animate-in slide-in-from-bottom duration-300 max-h-[70vh] overflow-y-auto">
-          <div className="flex items-center justify-between pb-3 mb-3 border-b border-card-border">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              {activeTab === 'teleop' && <><Gamepad2 className="w-4 h-4 text-primary" /> Driving Teleoperation Controls</>}
-              {activeTab === 'perception' && <><Target className="w-4 h-4 text-primary" /> YOLOv8 Perception & ToF Obstacle Radar</>}
-              {activeTab === 'diagnostics' && <><Stethoscope className="w-4 h-4 text-primary" /> Robot Hardware Diagnostics</>}
-            </h3>
-            <button
-              onClick={() => setActiveTab('none')}
-              className="p-1 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-
-          {activeTab === 'teleop' && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
-              <VirtualJoystick />
-              <KeyboardTeleop />
-              <div className="flex flex-col justify-between gap-4 h-full">
-                <div className="p-3 bg-background/50 border border-card-border rounded-xl text-xs text-gray-300 space-y-1">
-                  <p className="font-semibold text-white">Teleoperation Active:</p>
-                  <p className="text-gray-400">Use on-screen thumb joystick or WASD keys to drive the robot base in real-time.</p>
+            {/* 2D Navigation Map Panel */}
+            <div className={`bg-card/20 backdrop-blur-md border border-white/5 rounded-xl p-3 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] flex flex-col transition-all duration-300 ${!collapsed.map ? 'flex-1 min-h-0 overflow-y-auto' : ''}`}>
+              <div className="flex items-center justify-between text-gray-300 cursor-pointer select-none mb-1" onClick={() => toggleCollapse('map')}>
+                <h2 className="text-sm font-bold tracking-wide flex items-center gap-2">
+                  <svg className="w-4 h-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+                  2D Navigation Map
+                </h2>
+                <div className="flex items-center gap-2">
+                  {collapsed.map ? <ChevronDown className="w-4 h-4 text-gray-500" /> : <ChevronUp className="w-4 h-4 text-gray-500" />}
                 </div>
-                <EmergencyStop />
+              </div>
+
+              <div className={`transition-all duration-300 flex flex-col overflow-hidden ${collapsed.map ? 'max-h-0 opacity-0 mt-0 flex-none' : 'max-h-[800px] opacity-100 mt-2 flex-1'}`}>
+                <Map2DCanvas />
               </div>
             </div>
-          )}
+          </div>
 
-          {activeTab === 'perception' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <DetectionTable />
-              <TofRadar />
-            </div>
-          )}
-
-          {activeTab === 'diagnostics' && (
-            <div className="max-w-xl mx-auto">
-              <HardwareDiagnostics />
-            </div>
-          )}
         </div>
       )}
+
+      {/* Bottom Navigation Toolbar and Drawer removed as requested */}
 
     </div>
   );

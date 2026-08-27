@@ -18,12 +18,12 @@ export async function POST(req: NextRequest) {
 
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-    // Based on the user's requirements for segmentation
     const prompt = `
-      Give the segmentation masks for any prominent objects, obstacles, and items in the image. 
+      Give the segmentation masks for ONLY plants, crops, or leaves in the image. 
+      Do NOT segment any other objects (like chairs, people, pots, tables, or background items).
       Output a JSON list of segmentation masks where each entry contains the 2D bounding box in the key "box_2d", 
       the segmentation mask in key "mask", and the text label in the key "label". 
-      Use descriptive labels.
+      For the "label", please IDENTIFY the exact plant species or common name (e.g., "Monstera deliciosa", "Tomato Plant", "Ficus"). If you cannot identify it, use "Unknown Plant".
     `;
 
     const response = await ai.models.generateContent({

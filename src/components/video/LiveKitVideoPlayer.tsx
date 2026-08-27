@@ -2,7 +2,8 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import { RemoteTrack } from 'livekit-client';
-import { Maximize2, Radio, Volume2, VolumeX, ScanLine } from 'lucide-react';
+import { Maximize2, Radio, Volume2, VolumeX, ScanLine, Loader } from 'lucide-react';
+import { PlantDetailsHUD } from './PlantDetailsHUD';
 
 interface LiveKitVideoPlayerProps {
   track: RemoteTrack | null | undefined;
@@ -10,6 +11,8 @@ interface LiveKitVideoPlayerProps {
   objectFit?: 'contain' | 'cover' | 'fill';
   showStats?: boolean;
   trackName?: string;
+  enableAiVision?: boolean;
+  onPlantDetected?: (items: any[]) => void;
 }
 
 export const LiveKitVideoPlayer: React.FC<LiveKitVideoPlayerProps> = ({
@@ -18,12 +21,16 @@ export const LiveKitVideoPlayer: React.FC<LiveKitVideoPlayerProps> = ({
   objectFit = 'cover',
   showStats = false,
   trackName,
+  enableAiVision = true,
+  onPlantDetected,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isMuted, setIsMuted] = useState(true);
-  const [isSegmenting, setIsSegmenting] = useState(false);
+  const [isSegmenting, setIsSegmenting] = useState(enableAiVision);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [detectedItems, setDetectedItems] = useState<any[]>([]);
 
   useEffect(() => {
     const el = videoRef.current;
@@ -46,7 +53,10 @@ export const LiveKitVideoPlayer: React.FC<LiveKitVideoPlayerProps> = ({
 
   // AI Segmentation Loop
   useEffect(() => {
-    if (!isSegmenting || !videoRef.current || !canvasRef.current) return;
+    if (!isSegmenting || !videoRef.current || !canvasRef.current) {
+      setDetectedItems([]);
+      return;
+    }
 
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -54,6 +64,7 @@ export const LiveKitVideoPlayer: React.FC<LiveKitVideoPlayerProps> = ({
     
     let intervalId: NodeJS.Timeout;
     let isFetching = false;
+    let prevImageData: Uint8ClampedArray | null = null;
 
     const captureAndSegment = async () => {
       if (isFetching || !video || video.readyState < 2) return;
@@ -66,14 +77,52 @@ export const LiveKitVideoPlayer: React.FC<LiveKitVideoPlayerProps> = ({
       const offscreen = document.createElement('canvas');
       offscreen.width = video.videoWidth || 640;
       offscreen.height = video.videoHeight || 480;
-      const offCtx = offscreen.getContext('2d');
+      const offCtx = offscreen.getContext('2d', { willReadFrequently: true });
       if (!offCtx) return;
       
       offCtx.drawImage(video, 0, 0, offscreen.width, offscreen.height);
+      const currImageData = offCtx.getImageData(0, 0, offscreen.width, offscreen.height).data;
+
+      // Check if frame has changed significantly
+      let shouldProcess = true;
+      if (prevImageData) {
+        let diffCount = 0;
+        const step = 40; // check every 10th pixel (4 channels * 10)
+        const totalPixelsChecked = Math.floor(currImageData.length / step);
+        
+        for (let i = 0; i < currImageData.length; i += step) {
+          const rDiff = Math.abs(currImageData[i] - prevImageData[i]);
+          const gDiff = Math.abs(currImageData[i+1] - prevImageData[i+1]);
+          const bDiff = Math.abs(currImageData[i+2] - prevImageData[i+2]);
+          // High color threshold (80) to ignore minor lighting changes and small leaf shadows
+          if (rDiff + gDiff + bDiff > 80) diffCount++;
+        }
+        
+        // If less than 15% of pixels changed significantly, skip API call
+        // This high threshold ignores wind moving leaves but catches the whole camera moving
+        if (diffCount / totalPixelsChecked < 0.15) {
+          shouldProcess = false;
+        }
+      }
+
+      // Store current frame for next comparison
+      prevImageData = new Uint8ClampedArray(currImageData);
+
+      if (!shouldProcess) {
+        // Keep existing canvas and detectedItems, just skip the expensive API call
+        return;
+      }
+
+      // Clear the old HUD and masks immediately before scanning the new frame!
+      setDetectedItems([]);
+      onPlantDetected?.([]);
+      if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+
       const imageBase64 = offscreen.toDataURL('image/jpeg', 0.8);
 
       try {
         isFetching = true;
+        setIsAnalyzing(true);
         const res = await fetch('/api/segment', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -81,13 +130,23 @@ export const LiveKitVideoPlayer: React.FC<LiveKitVideoPlayerProps> = ({
         });
         const data = await res.json();
         
+        if (data.items) {
+          setDetectedItems(data.items);
+          onPlantDetected?.(data.items);
+        } else {
+          setDetectedItems([]);
+          onPlantDetected?.([]);
+        }
+
         if (data.items && ctx) {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
           
           data.items.forEach((item: any) => {
-            const { mask, label, box_2d } = item;
+            const { mask } = item;
             
-            // Draw mask
+            // Draw mask only (HUD handles labels and bounding boxes)
+            // The user requested to hide the polygon mask since the bounding box + reticle looks cleaner
+            /*
             if (mask && mask.length > 0) {
               ctx.beginPath();
               mask.forEach(([x, y]: [number, number], index: number) => {
@@ -97,30 +156,20 @@ export const LiveKitVideoPlayer: React.FC<LiveKitVideoPlayerProps> = ({
                 else ctx.lineTo(cx, cy);
               });
               ctx.closePath();
-              ctx.fillStyle = 'rgba(0, 229, 192, 0.3)';
+              ctx.fillStyle = 'rgba(45, 212, 191, 0.4)';
               ctx.fill();
-              ctx.strokeStyle = 'rgba(0, 229, 192, 0.8)';
-              ctx.lineWidth = 2;
+              ctx.strokeStyle = 'rgba(45, 212, 191, 1)';
+              ctx.lineWidth = 3;
               ctx.stroke();
             }
-
-            // Draw label near bounding box
-            if (box_2d && label) {
-              const [ymin, xmin] = box_2d;
-              const cx = (xmin / 1000) * canvas.width;
-              const cy = (ymin / 1000) * canvas.height;
-              ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-              ctx.fillRect(cx, cy > 20 ? cy - 20 : cy, ctx.measureText(label).width + 8, 20);
-              ctx.fillStyle = '#00e5c0';
-              ctx.font = '12px monospace';
-              ctx.fillText(label, cx + 4, cy > 20 ? cy - 6 : cy + 14);
-            }
+            */
           });
         }
       } catch (err) {
         console.error('Segmentation API error:', err);
       } finally {
         isFetching = false;
+        setIsAnalyzing(false);
       }
     };
 
@@ -155,10 +204,46 @@ export const LiveKitVideoPlayer: React.FC<LiveKitVideoPlayerProps> = ({
         style={{ objectFit }}
         className="w-full h-full relative z-0"
       />
+      
+      {/* 2D Canvas for drawing raw segmentation polygons */}
       <canvas 
         ref={canvasRef} 
         className="absolute inset-0 w-full h-full pointer-events-none z-10 mix-blend-screen"
       />
+
+      {/* DOM overlays for HUDs */}
+      {isSegmenting && canvasRef.current && detectedItems.map((item, idx) => (
+        item.box_2d ? (
+          <PlantDetailsHUD 
+            key={idx}
+            box_2d={item.box_2d}
+            label={item.label}
+            canvasWidth={canvasRef.current!.width}
+            canvasHeight={canvasRef.current!.height}
+          />
+        ) : null
+      ))}
+
+      {/* Analyzing Loader Overlay (Only when actively waiting for API) */}
+      {isAnalyzing && enableAiVision && (
+        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-30 pointer-events-none flex items-center gap-2 px-4 py-1.5 bg-black/40 backdrop-blur-md border border-cyan-400/50 rounded-full shadow-[0_0_15px_rgba(6,182,212,0.3)]">
+          <Loader className="w-4 h-4 text-cyan-400 animate-spin" />
+          <span className="text-cyan-400 font-mono text-[10px] font-bold tracking-[0.2em] animate-pulse">ANALYZING TARGET...</span>
+        </div>
+      )}
+
+      {/* Continuous Scanning Laser Line (Runs only while analyzing) */}
+      {isAnalyzing && enableAiVision && (
+        <div className="absolute inset-x-16 animate-scanline z-20 pointer-events-none">
+          <div className="w-full h-0.5 bg-teal-400 shadow-[0_0_20px_5px_rgba(45,212,191,0.8)] relative">
+            {/* Corner brackets that move with the line */}
+            <div className="absolute -top-4 -left-4 w-6 h-10 border-t-2 border-l-2 border-teal-400 shadow-[0_0_10px_rgba(45,212,191,0.5)]"></div>
+            <div className="absolute -top-4 -right-4 w-6 h-10 border-t-2 border-r-2 border-teal-400 shadow-[0_0_10px_rgba(45,212,191,0.5)]"></div>
+            <div className="absolute -bottom-4 -left-4 w-6 h-10 border-b-2 border-l-2 border-teal-400 shadow-[0_0_10px_rgba(45,212,191,0.5)]"></div>
+            <div className="absolute -bottom-4 -right-4 w-6 h-10 border-b-2 border-r-2 border-teal-400 shadow-[0_0_10px_rgba(45,212,191,0.5)]"></div>
+          </div>
+        </div>
+      )}
 
       {showStats && (
         <div className="absolute top-2 left-2 flex items-center gap-1.5 z-20 pointer-events-none">
@@ -180,19 +265,21 @@ export const LiveKitVideoPlayer: React.FC<LiveKitVideoPlayerProps> = ({
         </div>
       )}
 
-      {/* Quick controls on hover */}
-      <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20">
-        <button
-          onClick={() => setIsSegmenting(!isSegmenting)}
-          className={`p-1.5 rounded-lg border transition-colors ${
-            isSegmenting 
-              ? 'bg-primary/20 border-primary/40 text-primary' 
-              : 'bg-black/60 hover:bg-black/80 text-gray-300 hover:text-white border-white/10'
-          }`}
-          title={isSegmenting ? 'Disable AI Vision' : 'Enable AI Vision'}
-        >
-          <ScanLine className={`w-3.5 h-3.5 ${isSegmenting ? 'animate-pulse' : ''}`} />
-        </button>
+      {/* Quick controls */}
+      <div className="absolute top-2 right-2 flex items-center gap-1 transition-opacity duration-200 z-20">
+        {enableAiVision && (
+          <button
+            onClick={() => setIsSegmenting(!isSegmenting)}
+            className={`p-1.5 rounded-lg border transition-colors ${
+              isSegmenting 
+                ? 'bg-cyan-500/20 border-cyan-400 text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.5)]' 
+                : 'bg-black/40 border-white/10 text-white/70 hover:bg-white/10 hover:text-white'
+            }`}
+            title="Toggle AI Vision"
+          >
+            <ScanLine className="w-4 h-4" />
+          </button>
+        )}
         <button
           onClick={() => setIsMuted(!isMuted)}
           className="p-1.5 rounded-lg bg-black/60 hover:bg-black/80 text-gray-300 hover:text-white border border-white/10 transition-colors"
