@@ -32,6 +32,7 @@ export default function ArmStudioPage() {
             title="Wrist Camera Live Stream (End-Effector)"
             port={ROS_CONFIG.ARM_CAMERA_PORT}
             endpoint="arm_camera.mjpg"
+            rosTopic={ROS_CONFIG.TOPICS.CAMERA_ARM_COMPRESSED}
           />
           <VlaCommander />
         </div>

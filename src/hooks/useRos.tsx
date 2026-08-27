@@ -3,12 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import ROSLIB from 'roslib';
 import { ROS_CONFIG } from '@/lib/ros-config';
-
-export interface BoundingBox {
-  class: string;
-  confidence: number;
-  bbox: [number, number, number, number]; // [x1, y1, x2, y2]
-}
+import { DetectedObject } from '@/types/ros';
 
 interface RosContextType {
   ros: ROSLIB.Ros | null;
@@ -20,7 +15,7 @@ interface RosContextType {
   isMixedContentWarning: boolean;
   connectionError: string | null;
   operatorMode: 'operator' | 'observer';
-  detections: BoundingBox[];
+  detections: DetectedObject[];
   setOperatorMode: (mode: 'operator' | 'observer') => void;
   setRobotHost: (host: string) => void;
   setStreamHost: (host: string) => void;
@@ -104,7 +99,7 @@ export function resolveRosUrl(rawHost: string): { url: string; isMixedContentWar
 
 export const RosProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [robotHost, setRobotHostState] = useState<string>(ROS_CONFIG.DEFAULT_ROBOT_HOST);
-  const [streamHost, setStreamHostState] = useState<string>(ROS_CONFIG.DEFAULT_ROBOT_HOST);
+  const [streamHost, setStreamHostState] = useState<string>(ROS_CONFIG.DEFAULT_STREAM_HOST || 'localhost');
   const [operatorMode, setOperatorModeState] = useState<'operator' | 'observer'>('operator');
   const [resolvedRosUrl, setResolvedRosUrl] = useState<string>('');
   const [isMixedContentWarning, setIsMixedContentWarning] = useState<boolean>(false);
@@ -147,6 +142,8 @@ export const RosProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setStreamHostState(savedStreamHost);
       } else if (envStreamHost) {
         setStreamHostState(envStreamHost);
+      } else if (isTunnelHost(targetHost)) {
+        setStreamHostState(ROS_CONFIG.DEFAULT_STREAM_HOST || 'localhost');
       } else {
         setStreamHostState(targetHost);
       }
@@ -165,7 +162,11 @@ export const RosProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       localStorage.setItem('ecobot_robot_host', newHost);
       const savedStreamHost = localStorage.getItem('ecobot_stream_host');
       if (!savedStreamHost) {
-        setStreamHostState(newHost);
+        if (isTunnelHost(newHost)) {
+          setStreamHostState(ROS_CONFIG.DEFAULT_STREAM_HOST || 'localhost');
+        } else {
+          setStreamHostState(newHost);
+        }
       }
     }
   };
@@ -302,6 +303,14 @@ export const RosProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             data: JSON.stringify({ left: Math.random() * 0.5, right: Math.random() * 0.5 })
           });
         }
+        else if (topicName === ROS_CONFIG.TOPICS.DETECTIONS) {
+          callback({
+            data: JSON.stringify([
+              { class_name: 'tomato', confidence: 0.94, distance: 0.65, box: [120, 80, 240, 220] },
+              { class_name: 'weed', confidence: 0.88, distance: 0.42, box: [320, 150, 410, 270] }
+            ])
+          });
+        }
       }, 1000);
       return () => clearInterval(interval);
     }
@@ -348,6 +357,31 @@ export const RosProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     });
   }, [isConnected, robotHost]);
+
+  // Global subscription to detections
+  useEffect(() => {
+    if (!isConnected) {
+      setDetections([]);
+      return;
+    }
+    const unsub = subscribe(
+      ROS_CONFIG.TOPICS.DETECTIONS,
+      'std_msgs/msg/String',
+      (msg: any) => {
+        try {
+          const parsed = typeof msg.data === 'string' ? JSON.parse(msg.data) : msg.data;
+          if (Array.isArray(parsed)) {
+            setDetections(parsed);
+          } else if (parsed.detections && Array.isArray(parsed.detections)) {
+            setDetections(parsed.detections);
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+    );
+    return () => unsub();
+  }, [isConnected, subscribe]);
 
   return (
     <RosContext.Provider

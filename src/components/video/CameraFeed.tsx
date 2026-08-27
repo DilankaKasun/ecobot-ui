@@ -1,69 +1,194 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRos, isTunnelHost } from '@/hooks/useRos';
+import React, { useState, useEffect } from 'react';
+import { useRos, isTunnelHost, isLocalOrLanHost } from '@/hooks/useRos';
 import { ROS_CONFIG } from '@/lib/ros-config';
-import { Camera, RefreshCw, AlertCircle, ShieldAlert, ExternalLink } from 'lucide-react';
+import { Camera, RefreshCw, AlertCircle, ShieldAlert, ExternalLink, Wifi, Eye } from 'lucide-react';
+
+export interface StreamOption {
+  label: string;
+  port: number;
+  endpoint: string;
+  rosTopic?: string;
+}
 
 interface CameraFeedProps {
   title: string;
   port: number;
   endpoint?: string;
+  rosTopic?: string;
   aspectRatio?: 'video' | 'square';
+  streamOptions?: StreamOption[];
 }
 
 export function resolveStreamUrl(
   robotHost: string,
   streamHost: string | undefined,
   port: number,
-  endpoint: string,
-  refreshKey: number
+  endpoint: string = 'stream.mjpg',
+  refreshKey: number = 0
 ): string {
-  if (!robotHost && !streamHost) return '';
+  const host = (streamHost && streamHost.trim()) || (robotHost && robotHost.trim()) || '';
+  if (!host || host === 'mock') return '';
 
-  let targetHost = (streamHost && streamHost.trim()) || robotHost.trim();
-
-  const cleanHost = targetHost
-    .replace(/^wss?:\/\//, '')
-    .replace(/^https?:\/\//, '')
-    .split(':')[0];
-
-  const scheme = (targetHost.startsWith('wss://') || targetHost.startsWith('https://')) ? 'https' : 'http';
-
-  // If using a Cloudflare/Ngrok tunnel, the port is handled by the tunnel, so omit it.
-  if (isTunnelHost(targetHost)) {
-    return `${scheme}://${cleanHost}/${endpoint}?t=${refreshKey}`;
+  // If host is already a full image/stream URL
+  if (/^https?:\/\/.+\.(mjpg|mjpeg|jpg|jpeg|png)($|\?)/i.test(host)) {
+    const separator = host.includes('?') ? '&' : '?';
+    return `${host}${separator}t=${refreshKey}`;
   }
 
-  return `${scheme}://${cleanHost}:${port}/${endpoint}?t=${refreshKey}`;
+  const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
+
+  let protocol = isHttps ? 'https:' : 'http:';
+  let clean = host;
+
+  if (/^https?:\/\//i.test(clean)) {
+    protocol = clean.startsWith('https://') ? 'https:' : 'http:';
+    clean = clean.replace(/^https?:\/\//i, '');
+  } else if (/^wss?:\/\//i.test(clean)) {
+    protocol = clean.startsWith('wss://') ? 'https:' : 'http:';
+    clean = clean.replace(/^wss?:\/\//i, '');
+  }
+
+  clean = clean.replace(/\/+$/, '');
+
+  // Check if tunnel host
+  if (isTunnelHost(clean)) {
+    if (clean.includes('/')) {
+      return `https://${clean}?t=${refreshKey}`;
+    }
+    return `https://${clean}/${endpoint}?t=${refreshKey}`;
+  }
+
+  // Handle explicit port in host string
+  if (clean.includes(':')) {
+    const [h, p] = clean.split(':');
+    const portPart = p.split('/')[0];
+    const pathPart = p.includes('/') ? p.substring(p.indexOf('/') + 1) : endpoint;
+    const finalScheme = isHttps && !isLocalOrLanHost(h) ? 'https' : protocol;
+    return `${finalScheme}://${h}:${portPart}/${pathPart}?t=${refreshKey}`;
+  }
+
+  const hostName = clean.split('/')[0];
+  const finalScheme = isHttps && !isLocalOrLanHost(hostName) ? 'https' : protocol;
+  return `${finalScheme}://${hostName}:${port}/${endpoint}?t=${refreshKey}`;
 }
 
 export const CameraFeed: React.FC<CameraFeedProps> = ({
   title,
-  port,
-  endpoint = 'stream.mjpg',
+  port: initialPort,
+  endpoint: initialEndpoint = 'stream.mjpg',
+  rosTopic: initialRosTopic,
   aspectRatio = 'video',
+  streamOptions,
 }) => {
-  const { robotHost, streamHost, isConnected, detections } = useRos();
+  const { robotHost, streamHost, isConnected, subscribe, detections } = useRos();
+  const [selectedOptionIndex, setSelectedOptionIndex] = useState<number>(0);
   const [streamError, setStreamError] = useState<boolean>(false);
   const [refreshKey, setRefreshKey] = useState<number>(0);
+  const [useRosStream, setUseRosStream] = useState<boolean>(false);
+  const [rosImageData, setRosImageData] = useState<string | null>(null);
+  const [showOverlays, setShowOverlays] = useState<boolean>(true);
 
-  const streamUrl = resolveStreamUrl(robotHost, streamHost, port, endpoint, refreshKey);
+  const activePort = streamOptions ? streamOptions[selectedOptionIndex].port : initialPort;
+  const activeEndpoint = streamOptions ? streamOptions[selectedOptionIndex].endpoint : initialEndpoint;
+  const activeRosTopic = streamOptions
+    ? streamOptions[selectedOptionIndex].rosTopic || initialRosTopic
+    : initialRosTopic;
+
+  const streamUrl = resolveStreamUrl(robotHost, streamHost, activePort, activeEndpoint, refreshKey);
   const isHttpsPage = typeof window !== 'undefined' && window.location.protocol === 'https:';
+
+  // ROS Topic Image Subscription (Base64 CompressedImage)
+  useEffect(() => {
+    if (!useRosStream || !isConnected || !activeRosTopic) return;
+
+    const unsub = subscribe(
+      activeRosTopic,
+      'sensor_msgs/msg/CompressedImage',
+      (msg: any) => {
+        if (msg && msg.data) {
+          const base64 = typeof msg.data === 'string' ? msg.data : '';
+          setRosImageData(base64.startsWith('data:') ? base64 : `data:image/jpeg;base64,${base64}`);
+        }
+      }
+    );
+
+    return () => unsub();
+  }, [useRosStream, isConnected, activeRosTopic, subscribe]);
 
   const handleRefresh = () => {
     setStreamError(false);
     setRefreshKey((k) => k + 1);
   };
 
+  const handleSelectOption = (idx: number) => {
+    setSelectedOptionIndex(idx);
+    setStreamError(false);
+    setRefreshKey((k) => k + 1);
+    setRosImageData(null);
+  };
+
+  const isMock = robotHost === 'mock' || streamHost === 'mock';
+
   return (
     <div className="bg-card border border-card-border rounded-xl overflow-hidden shadow-lg flex flex-col">
-      <div className="px-4 py-2.5 bg-background/50 border-b border-card-border flex items-center justify-between">
+      <div className="px-4 py-2.5 bg-background/50 border-b border-card-border flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
-          <Camera className="w-4 h-4 text-blue-400" />
+          <Camera className="w-4 h-4 text-blue-400 shrink-0" />
           <h3 className="font-semibold text-sm text-gray-200">{title}</h3>
         </div>
-        <div className="flex items-center gap-1.5">
+
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {streamOptions && streamOptions.length > 0 && (
+            <div className="flex items-center bg-black/40 p-0.5 rounded-lg border border-card-border">
+              {streamOptions.map((opt, idx) => (
+                <button
+                  key={opt.label}
+                  onClick={() => handleSelectOption(idx)}
+                  className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all ${
+                    selectedOptionIndex === idx
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'text-gray-400 hover:text-gray-200'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {activeRosTopic && (
+            <button
+              onClick={() => {
+                setUseRosStream((v) => !v);
+                setStreamError(false);
+              }}
+              className={`p-1 px-1.5 rounded text-[11px] font-semibold flex items-center gap-1 transition-colors ${
+                useRosStream
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-card-border/60 text-gray-400 hover:text-white'
+              }`}
+              title="Toggle ROS WebSocket Compressed Image Stream"
+            >
+              <Wifi className="w-3 h-3" />
+              <span>{useRosStream ? 'ROS WSS' : 'HTTP'}</span>
+            </button>
+          )}
+
+          {detections && detections.length > 0 && (
+            <button
+              onClick={() => setShowOverlays((v) => !v)}
+              className={`p-1 px-1.5 rounded text-[11px] font-semibold flex items-center gap-1 transition-colors ${
+                showOverlays ? 'bg-primary/20 text-primary border border-primary/40' : 'text-gray-400 hover:text-white'
+              }`}
+              title="Toggle AI Detection Overlays"
+            >
+              <Eye className="w-3 h-3" />
+              <span>AI</span>
+            </button>
+          )}
+
           <button
             onClick={handleRefresh}
             className="p-1 rounded text-gray-400 hover:text-white hover:bg-card-border transition-colors"
@@ -79,14 +204,29 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
           aspectRatio === 'video' ? 'aspect-video' : 'aspect-square'
         }`}
       >
-        {streamError ? (
+        {isMock ? (
+          <div className="w-full h-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-950 via-gray-950 to-black flex items-center justify-center relative overflow-hidden">
+            <div className="absolute inset-0 opacity-20 bg-[linear-gradient(rgba(0,229,192,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(0,229,192,0.1)_1px,transparent_1px)] bg-[size:24px_24px]" />
+            <div className="flex flex-col items-center gap-2 z-10 text-primary/80">
+              <Camera className="w-8 h-8 opacity-60 animate-pulse" />
+              <span className="text-xs font-mono tracking-widest font-bold">MOCK VIDEO STREAM ACTIVE</span>
+              <span className="text-[10px] font-mono text-gray-400">{title} • Port {activePort}</span>
+            </div>
+          </div>
+        ) : useRosStream && rosImageData ? (
+          <img
+            src={rosImageData}
+            alt={title}
+            className="w-full h-full object-contain"
+          />
+        ) : streamError ? (
           <div className="flex flex-col items-center gap-2 text-gray-300 text-xs p-4 text-center max-w-sm">
             {isHttpsPage ? (
               <ShieldAlert className="w-7 h-7 text-amber-400" />
             ) : (
               <AlertCircle className="w-6 h-6 text-amber-500/80" />
             )}
-            <span className="font-semibold text-amber-200">Stream Blocked (Port {port})</span>
+            <span className="font-semibold text-amber-200">Stream Blocked or Offline (Port {activePort})</span>
 
             {isHttpsPage ? (
               <div className="space-y-2 text-left bg-black/60 border border-amber-500/30 p-3 rounded-lg text-[11px]">
@@ -101,15 +241,27 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
                 </ol>
               </div>
             ) : (
-              <span className="text-gray-400 text-[11px]">Ensure the video server is running on the robot.</span>
+              <span className="text-gray-400 text-[11px]">Ensure the video server (mjpg_streamer / ros_rtsp) is running on the robot host.</span>
             )}
 
-            <div className="flex items-center gap-2 mt-1">
+            <div className="flex items-center gap-2 mt-1 flex-wrap justify-center">
+              {activeRosTopic && (
+                <button
+                  onClick={() => {
+                    setUseRosStream(true);
+                    setStreamError(false);
+                  }}
+                  className="px-3 py-1 bg-emerald-600/40 border border-emerald-500/50 text-emerald-200 rounded text-xs hover:bg-emerald-600/70 font-semibold flex items-center gap-1"
+                >
+                  <Wifi className="w-3 h-3" />
+                  Use ROS WSS Stream
+                </button>
+              )}
               <button
                 onClick={handleRefresh}
                 className="px-3 py-1 bg-blue-600/30 border border-blue-500/40 text-blue-300 rounded text-xs hover:bg-blue-600/50"
               >
-                Retry Connection
+                Retry HTTP
               </button>
               {streamUrl && (
                 <a
@@ -124,14 +276,6 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
               )}
             </div>
           </div>
-        ) : (robotHost === 'mock' && (!streamHost || streamHost === 'mock' || streamHost === ROS_CONFIG.DEFAULT_ROBOT_HOST)) ? (
-          <div className="w-full h-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900 to-black flex items-center justify-center relative overflow-hidden">
-             <div className="absolute inset-0 opacity-20 bg-[linear-gradient(rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[size:20px_20px]" />
-             <div className="flex flex-col items-center gap-2 z-10 text-blue-300/80">
-               <Camera className="w-8 h-8 opacity-50" />
-               <span className="text-sm font-mono tracking-wider font-bold">MOCK CAMERA FEED</span>
-             </div>
-          </div>
         ) : (
           <img
             src={streamUrl}
@@ -139,6 +283,38 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
             onError={() => setStreamError(true)}
             className="w-full h-full object-contain"
           />
+        )}
+
+        {/* AI Detection Bounding Boxes Overlay */}
+        {showOverlays && detections && detections.length > 0 && !streamError && (
+          <div className="absolute inset-0 pointer-events-none">
+            {detections.map((det, i) => {
+              if (!det.box || !Array.isArray(det.box) || det.box.length < 4) return null;
+              const [x1, y1, x2, y2] = det.box;
+              // Assuming 640x480 coordinate space normalized to percentages
+              const left = (x1 / 640) * 100;
+              const top = (y1 / 480) * 100;
+              const width = ((x2 - x1) / 640) * 100;
+              const height = ((y2 - y1) / 480) * 100;
+
+              return (
+                <div
+                  key={i}
+                  className="absolute border-2 border-primary bg-primary/10 rounded"
+                  style={{
+                    left: `${Math.max(0, Math.min(95, left))}%`,
+                    top: `${Math.max(0, Math.min(95, top))}%`,
+                    width: `${Math.max(5, Math.min(100, width))}%`,
+                    height: `${Math.max(5, Math.min(100, height))}%`,
+                  }}
+                >
+                  <span className="absolute -top-5 left-0 bg-primary text-black font-mono font-bold text-[10px] px-1 py-0.5 rounded shadow">
+                    {det.class_name} {Math.round(det.confidence * 100)}%
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
     </div>

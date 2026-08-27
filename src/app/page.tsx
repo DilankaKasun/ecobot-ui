@@ -1,14 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRos } from '@/hooks/useRos';
 import { useOdometry } from '@/hooks/useOdometry';
 import { resolveStreamUrl } from '@/components/video/CameraFeed';
 import { ROS_CONFIG } from '@/lib/ros-config';
-import { Info, Crosshair, Activity, Zap, Maximize2, VideoOff, WifiOff, ChevronDown, ChevronUp, ArrowRightLeft } from 'lucide-react';
+import { Info, Crosshair, Activity, Zap, Maximize2, VideoOff, WifiOff, ChevronDown, ChevronUp, ArrowRightLeft, RefreshCw, Camera } from 'lucide-react';
 
 export default function DashboardPage() {
-  const { isConnected, robotHost, streamHost } = useRos();
+  const { isConnected, robotHost, streamHost, subscribe } = useRos();
   const { odom, runMode } = useOdometry();
 
   // Simple state to minimize/expand panels
@@ -24,26 +24,106 @@ export default function DashboardPage() {
 
   // State to handle camera feed swapping
   const [isSwapped, setIsSwapped] = useState(false);
+  const [refreshKey, setRefreshKey] = useState<number>(0);
+  const [bgStreamError, setBgStreamError] = useState<boolean>(false);
+  const [pipStreamError, setPipStreamError] = useState<boolean>(false);
+
+  // ROS Topic image data fallback
+  const [mainRosImage, setMainRosImage] = useState<string | null>(null);
+  const [armRosImage, setArmRosImage] = useState<string | null>(null);
+
+  // Reset errors on refreshKey or host changes
+  useEffect(() => {
+    setBgStreamError(false);
+    setPipStreamError(false);
+  }, [robotHost, streamHost, refreshKey]);
+
+  // Subscribe to ROS CompressedImage topics as fallback over WebSocket tunnel
+  useEffect(() => {
+    if (!isConnected) {
+      setMainRosImage(null);
+      setArmRosImage(null);
+      return;
+    }
+
+    const unsubMain = subscribe(
+      ROS_CONFIG.TOPICS.CAMERA_COLOR_COMPRESSED,
+      'sensor_msgs/msg/CompressedImage',
+      (msg: any) => {
+        if (msg && msg.data) {
+          const b64 = typeof msg.data === 'string' ? msg.data : '';
+          setMainRosImage(b64.startsWith('data:') ? b64 : `data:image/jpeg;base64,${b64}`);
+        }
+      }
+    );
+
+    const unsubArm = subscribe(
+      ROS_CONFIG.TOPICS.CAMERA_ARM_COMPRESSED,
+      'sensor_msgs/msg/CompressedImage',
+      (msg: any) => {
+        if (msg && msg.data) {
+          const b64 = typeof msg.data === 'string' ? msg.data : '';
+          setArmRosImage(b64.startsWith('data:') ? b64 : `data:image/jpeg;base64,${b64}`);
+        }
+      }
+    );
+
+    return () => {
+      unsubMain();
+      unsubArm();
+    };
+  }, [isConnected, subscribe]);
+
+  const handleRefreshStreams = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setBgStreamError(false);
+    setPipStreamError(false);
+    setRefreshKey(k => k + 1);
+  };
 
   // Helper to format numbers like the mockup
   const formatNum = (num: number) => num.toFixed(2);
 
-  const bgFeedUrl = resolveStreamUrl(robotHost, streamHost, isSwapped ? ROS_CONFIG.ARM_CAMERA_PORT : ROS_CONFIG.REALSENSE_STREAM_PORT, isSwapped ? 'arm_camera.mjpg' : 'stream.mjpg', 0);
-  const pipFeedUrl = resolveStreamUrl(robotHost, streamHost, isSwapped ? ROS_CONFIG.REALSENSE_STREAM_PORT : ROS_CONFIG.ARM_CAMERA_PORT, isSwapped ? 'stream.mjpg' : 'arm_camera.mjpg', 0);
+  const bgPort = isSwapped ? ROS_CONFIG.ARM_CAMERA_PORT : ROS_CONFIG.REALSENSE_STREAM_PORT;
+  const bgEndpoint = isSwapped ? 'arm_camera.mjpg' : 'stream.mjpg';
+  const pipPort = isSwapped ? ROS_CONFIG.REALSENSE_STREAM_PORT : ROS_CONFIG.ARM_CAMERA_PORT;
+  const pipEndpoint = isSwapped ? 'stream.mjpg' : 'arm_camera.mjpg';
+
+  const bgFeedUrl = resolveStreamUrl(robotHost, streamHost, bgPort, bgEndpoint, refreshKey);
+  const pipFeedUrl = resolveStreamUrl(robotHost, streamHost, pipPort, pipEndpoint, refreshKey);
   const pipLabel = isSwapped ? "Main Camera Feed" : "Manipulator Wrist Cam";
+
+  const bgRosImage = isSwapped ? armRosImage : mainRosImage;
+  const pipRosImage = isSwapped ? mainRosImage : armRosImage;
+
+  const isMock = robotHost === 'mock' || streamHost === 'mock';
 
   return (
     <div className="relative w-full h-full overflow-hidden">
       
       {/* --- BACKGROUND CAMERA FEED --- */}
-      <div className="absolute inset-0 w-full h-full z-0 bg-background/80 transition-all duration-500">
-        {isConnected && streamHost && (
+      <div className="absolute inset-0 w-full h-full z-0 bg-background/80 transition-all duration-500 overflow-hidden">
+        {isMock ? (
+          <div className="w-full h-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-950/40 via-background to-background flex items-center justify-center opacity-60">
+            <div className="absolute inset-0 opacity-10 bg-[linear-gradient(rgba(0,229,192,0.15)_1px,transparent_1px),linear-gradient(90deg,rgba(0,229,192,0.15)_1px,transparent_1px)] bg-[size:32px_32px]" />
+          </div>
+        ) : bgRosImage ? (
+          <img 
+            src={bgRosImage} 
+            alt="Background Camera Feed" 
+            className="w-full h-full object-cover opacity-70 mix-blend-screen" 
+          />
+        ) : isConnected && bgFeedUrl && !bgStreamError ? (
           <img 
             src={bgFeedUrl} 
             alt="Background Camera Feed" 
-            className="w-full h-full object-cover opacity-70 mix-blend-screen" 
-            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+            className="w-full h-full object-cover opacity-70 mix-blend-screen transition-opacity duration-500" 
+            onError={() => setBgStreamError(true)}
           />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-b from-background/90 via-background to-background flex items-center justify-center">
+            <div className="absolute inset-0 opacity-10 bg-[linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:40px_40px]" />
+          </div>
         )}
         <div className="absolute inset-0 pointer-events-none opacity-[0.03] bg-[linear-gradient(transparent_50%,rgba(0,0,0,1)_50%)] bg-[length:100%_4px]" />
         {/* Subtle radial gradient overlay to ensure UI elements remain readable */}
@@ -188,8 +268,15 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between text-xs cursor-pointer select-none" onClick={() => toggleCollapse('cam')}>
               <span className="text-gray-400 font-mono">{pipLabel}</span>
               <div className="flex items-center gap-3">
+                <button
+                  onClick={handleRefreshStreams}
+                  className="p-1 rounded text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+                  title="Reload Camera Feeds"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                </button>
                 <span className={`font-mono font-bold ${!isConnected ? 'text-danger/80 animate-pulse-slow' : 'text-primary'}`}>
-                  {!isConnected ? 'OFFLINE' : 'ONLINE'}
+                  {!isConnected ? 'OFFLINE' : (pipStreamError && !pipRosImage) ? 'STREAM BLOCKED' : 'ONLINE'}
                 </span>
                 {collapsed.cam ? <ChevronDown className="w-4 h-4 text-gray-500" /> : <ChevronUp className="w-4 h-4 text-gray-500" />}
               </div>
@@ -202,15 +289,37 @@ export default function DashboardPage() {
                 className="aspect-video bg-background/50 border border-card-border/30 rounded-lg flex items-center justify-center relative overflow-hidden group cursor-pointer"
                 title="Click to swap with background"
               >
-                {isConnected && streamHost ? (
+                {isMock ? (
+                  <div className="w-full h-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900 to-black flex items-center justify-center relative overflow-hidden">
+                    <div className="flex flex-col items-center gap-1 z-10 text-primary/70">
+                      <Camera className="w-6 h-6 opacity-60" />
+                      <span className="text-[10px] font-mono font-bold">MOCK CAM</span>
+                    </div>
+                  </div>
+                ) : pipRosImage ? (
+                  <img 
+                    src={pipRosImage} 
+                    alt="PIP Camera" 
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
+                  />
+                ) : isConnected && pipFeedUrl && !pipStreamError ? (
                   <img 
                     src={pipFeedUrl} 
                     alt="PIP Camera" 
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
-                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    onError={() => setPipStreamError(true)}
                   />
                 ) : (
-                  <VideoOff className="w-8 h-8 text-danger/30" />
+                  <div className="flex flex-col items-center gap-1.5 p-2 text-center">
+                    <VideoOff className="w-6 h-6 text-danger/40" />
+                    <span className="text-[10px] font-mono text-gray-400">Feed Offline (Port {pipPort})</span>
+                    <button
+                      onClick={handleRefreshStreams}
+                      className="px-2 py-0.5 bg-primary/20 text-primary border border-primary/40 rounded text-[9px] font-mono hover:bg-primary/30"
+                    >
+                      Retry
+                    </button>
+                  </div>
                 )}
                 {/* Scanline overlay for aesthetic */}
                 <div className="absolute inset-0 pointer-events-none opacity-[0.03] bg-[linear-gradient(transparent_50%,rgba(0,0,0,1)_50%)] bg-[length:100%_4px]" />

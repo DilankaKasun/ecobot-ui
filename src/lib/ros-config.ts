@@ -1,5 +1,7 @@
 export const ROS_CONFIG = {
-  DEFAULT_ROBOT_HOST: 'wss://functional-hugh-focusing-hierarchy.trycloudflare.com',
+  DEFAULT_ROBOT_HOST: process.env.NEXT_PUBLIC_DEFAULT_ROBOT_HOST || 'localhost',
+  DEFAULT_STREAM_HOST: process.env.NEXT_PUBLIC_DEFAULT_STREAM_HOST || 'localhost',
+  DEFAULT_LAN_IP: '192.168.8.105',
   ROSBRIDGE_PORT: 9090,
   REALSENSE_STREAM_PORT: 8081,
   WEBRTC_SIGNALING_PORT: 8082,
@@ -26,6 +28,9 @@ export const ROS_CONFIG = {
     MAP_2D: '/map',
     MAP_3D: '/rtabmap/cloud_map',
     HARDWARE_STATUS: '/ecobot/hardware_status',
+    CAMERA_COLOR_COMPRESSED: '/camera/color/image_raw/compressed',
+    CAMERA_OBSTACLE_COMPRESSED: '/ecobot/obstacle/compressed',
+    CAMERA_ARM_COMPRESSED: '/arm/camera/image_raw/compressed',
   },
 
   SERVICES: {
