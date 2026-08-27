@@ -88,8 +88,8 @@ export const Navbar: React.FC = () => {
             </button>
           )}
 
-          <RefreshCw className={`w-4 h-4 ${!isConnected ? 'text-danger animate-spin-slow' : 'text-gray-400'}`} />
-          {isConnected ? (
+          <RefreshCw className={`w-4 h-4 ${!(isConnected || isLiveKitConnected) ? 'text-danger animate-spin-slow' : 'text-gray-400'}`} />
+          {(isConnected || isLiveKitConnected) ? (
             <Wifi className="w-4 h-4 text-primary animate-pulse" />
           ) : (
             <WifiOff className="w-4 h-4 text-danger opacity-80" />
