@@ -290,7 +290,7 @@ export const RosProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
         else if (topicName === ROS_CONFIG.TOPICS.ARM_STATUS) {
           callback({
-            data: JSON.stringify({ state: 'READY', joints: { base: 45, shoulder: -30, elbow: 90, wrist: 0 }, end_effector: { x: 1, y: 2, z: 3 }, gripper: 'open' })
+            data: JSON.stringify({ state: 'READY', joints: { base: 107, shoulder: 125, elbow: 180, wrist: 45 }, end_effector: { x: 0.25, y: 0.0, z: 0.20 }, gripper: 'open' })
           });
         }
         else if (topicName === ROS_CONFIG.TOPICS.HARDWARE_STATUS) {

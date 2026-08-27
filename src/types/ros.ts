@@ -26,8 +26,8 @@ export interface GotoStatus {
 }
 
 export interface ArmJoints {
-  base: number;      // 0 - 270 deg
-  shoulder: number;  // 0 - 90 deg
+  base: number;      // 0 - 220 deg
+  shoulder: number;  // 0 - 125 deg
   elbow: number;     // 0 - 180 deg
   wrist: number;     // 0 - 180 deg
 }
