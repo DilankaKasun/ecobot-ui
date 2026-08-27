@@ -79,8 +79,10 @@ PCM16) → `sendRealtimeInput({audio})`; Gemini 24 kHz PCM → `live-audio-out-w
 `<canvas>` → `sendRealtimeInput({media})`. Config/model/system-prompt in
 `src/lib/gemini-live-config.ts` (`GEMINI_LIVE_MODEL` env overrides the model). Token
 comes from `/api/gemini-live` which mints an ephemeral token from `GEMINI_API_KEY`
-(falls back to the raw key). The "Switch Camera" button cycles the agent's view over
-`mainCameraTrack` / `wristCameraTrack` / `detectionOverlayTrack` from `useLiveKit`.
+(falls back to the raw key). Voice is `GEMINI_LIVE_CONFIG.VOICE_NAME` ("Orus", matching
+govimithuru-core). The "Switch Camera" button cycles the agent's view over the two
+physical robot cams (`mainCameraTrack` / `wristCameraTrack` from `useLiveKit`) — the
+detection-overlay track is deliberately excluded (it's the main cam + YOLO boxes).
 
 ### ROS contract
 All topic/port/service names live in **`src/lib/ros-config.ts`** (`ROS_CONFIG`). Add new

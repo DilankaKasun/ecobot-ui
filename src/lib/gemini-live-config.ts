@@ -11,6 +11,11 @@ export const GEMINI_LIVE_CONFIG = {
   // Required API surface for ephemeral auth tokens and the Live WebSocket.
   API_VERSION: 'v1alpha',
 
+  // Prebuilt Gemini Live voice. "Orus" matches govimithuru-core (voice.py).
+  // Other options: Leda, Alnilam, Sadachbia, Algenib, Sadaltager, Laomedeia,
+  // Zubenelgenubi, Algieba, Despina.
+  VOICE_NAME: 'Orus',
+
   // Mic capture -> Gemini. The Live API expects 16 kHz mono PCM16 little-endian.
   INPUT_SAMPLE_RATE: 16000,
   // Gemini -> speakers. The Live API always returns 24 kHz mono PCM16.
@@ -40,9 +45,9 @@ export const GEMINI_LIVE_CONFIG = {
     'obstacles, people, equipment and hazards; estimate rough distance and ' +
     'direction relative to the robot; give short spoken guidance. Keep replies ' +
     'concise and conversational unless asked for detail. The operator can switch ' +
-    'which camera you see (main navigation camera, wrist/arm camera, or the ' +
-    'detection overlay) - adapt immediately when they do. You cannot drive or ' +
-    'move the robot yourself; describe and advise only.',
+    'which camera you see (the main navigation camera or the wrist/arm camera) - ' +
+    'adapt immediately when they do. You cannot drive or move the robot ' +
+    'yourself; describe and advise only.',
 
   // Sent as realtime text once the session is ready, so the agent opens the
   // conversation instead of waiting silently. gemini-*-live-preview models do

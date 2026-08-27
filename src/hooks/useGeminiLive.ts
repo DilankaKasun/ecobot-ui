@@ -279,6 +279,11 @@ export function useGeminiLive(): UseGeminiLive {
         config: {
           responseModalities: [Modality.AUDIO],
           systemInstruction: GEMINI_LIVE_CONFIG.SYSTEM_INSTRUCTION,
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName: GEMINI_LIVE_CONFIG.VOICE_NAME },
+            },
+          },
           inputAudioTranscription: {},
           outputAudioTranscription: {},
         },

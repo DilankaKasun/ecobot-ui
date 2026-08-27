@@ -33,12 +33,7 @@ const STATUS_TEXT: Record<string, string> = {
 };
 
 export const LiveAgentView: React.FC = () => {
-  const {
-    isConnected: lkConnected,
-    mainCameraTrack,
-    wristCameraTrack,
-    detectionOverlayTrack,
-  } = useLiveKit();
+  const { isConnected: lkConnected, mainCameraTrack, wristCameraTrack } = useLiveKit();
 
   const {
     status,
@@ -56,21 +51,22 @@ export const LiveAgentView: React.FC = () => {
     sendNote,
   } = useGeminiLive();
 
+  // Only the two physical robot cameras. The detection-overlay track is the same
+  // scene as the main cam with YOLO boxes drawn on it, not a separate camera.
   const sources = useMemo<AgentSource[]>(() => {
     const list: AgentSource[] = [];
     if (mainCameraTrack) list.push({ key: 'main', label: 'Main Navigation Cam', track: mainCameraTrack });
     if (wristCameraTrack) list.push({ key: 'wrist', label: 'Wrist / Arm Cam', track: wristCameraTrack });
-    if (detectionOverlayTrack)
-      list.push({ key: 'detection', label: 'Detection Overlay', track: detectionOverlayTrack });
     return list;
-  }, [mainCameraTrack, wristCameraTrack, detectionOverlayTrack]);
+  }, [mainCameraTrack, wristCameraTrack]);
 
   const [sourceIdx, setSourceIdx] = useState(0);
   const activeSource = sources.length ? sources[sourceIdx % sources.length] : null;
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const transcriptEndRef = useRef<HTMLDivElement | null>(null);
+  const transcriptScrollRef = useRef<HTMLDivElement | null>(null);
+  const stickToBottomRef = useRef(true);
 
   // Attach the selected robot track to the local <video> we capture frames from.
   useEffect(() => {
@@ -127,8 +123,17 @@ export const LiveAgentView: React.FC = () => {
     return () => window.clearInterval(id);
   }, [connected, sendFrame, activeSource?.key]);
 
+  // Keep the transcript pinned to the newest line — but scroll only this
+  // container (scrollIntoView would also scroll <main>, shoving the video off
+  // the top). Don't yank the operator down if they've scrolled up to read back.
+  const onTranscriptScroll = useCallback(() => {
+    const el = transcriptScrollRef.current;
+    if (el) stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 64;
+  }, []);
+
   useEffect(() => {
-    transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const el = transcriptScrollRef.current;
+    if (el && stickToBottomRef.current) el.scrollTop = el.scrollHeight;
   }, [transcript.length, partialOperator, partialAgent]);
 
   const noFeed = sources.length === 0;
@@ -267,12 +272,16 @@ export const LiveAgentView: React.FC = () => {
       </div>
 
       {/* --- RIGHT: transcript — fills the width the video panel doesn't use --- */}
-      <div className="order-2 flex min-h-0 min-w-0 flex-1 flex-col rounded-xl border border-white/5 bg-card/20 backdrop-blur-md shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] max-h-[32vh] lg:max-h-none lg:min-w-[260px]">
+      <div className="order-2 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-white/5 bg-card/20 backdrop-blur-md shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] max-h-[32vh] lg:max-h-none lg:min-w-[260px]">
         <div className="px-4 py-3 border-b border-white/5 flex items-center gap-2">
           <Bot className="w-4 h-4 text-primary" />
           <h2 className="text-sm font-bold text-gray-100">Conversation</h2>
         </div>
-        <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-3 text-sm">
+        <div
+          ref={transcriptScrollRef}
+          onScroll={onTranscriptScroll}
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 space-y-3 text-sm"
+        >
           {transcript.length === 0 && !partialOperator && !partialAgent && (
             <p className="text-xs text-gray-500 leading-relaxed">
               Start the session, then just talk. Ask the agent what it sees, where obstacles are, or to
@@ -304,7 +313,6 @@ export const LiveAgentView: React.FC = () => {
               <p className="leading-snug italic">{partialAgent}</p>
             </div>
           )}
-          <div ref={transcriptEndRef} />
         </div>
       </div>
     </div>
