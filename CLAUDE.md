@@ -56,6 +56,7 @@ robot data — don't call `subscribe` directly from components.
 | `/arm` | Manipulator studio — joint sliders, FK/IK (`src/lib/kinematics.ts`), VLA prompt |
 | `/map3d` | Three.js point-cloud / SLAM viewer |
 | `/mission` | Autonomous multi-waypoint plant-scan mission manager |
+| `/live` | Live AI Agent — real-time voice+vision chat with Gemini Live API, fed the robot's LiveKit camera |
 | `/settings` | Robot host, stream host, LiveKit URL/room/token config |
 
 ### Camera feeds (`src/components/video/`)
@@ -68,6 +69,18 @@ automatic fallback, toggled in its header:
 `resolveStreamUrl()` (exported from `CameraFeed.tsx`) handles tunnel hosts
 (cloudflare/ngrok/vercel), explicit ports, and http→https upgrades. The main HUD in
 `src/app/page.tsx` re-implements this fallback inline rather than using `<CameraFeed>`.
+
+### Live AI Agent (`/live`)
+Browser talks **directly** to the Gemini Live API over WebSocket (`@google/genai`,
+`ai.live.connect`) — there is no backend agent process. `src/hooks/useGeminiLive.ts`
+owns the session: mic → `public/worklets/live-mic-worklet.js` (downsample to 16 kHz
+PCM16) → `sendRealtimeInput({audio})`; Gemini 24 kHz PCM → `live-audio-out-worklet.js`
+→ speakers; ~1 fps JPEG frames grabbed off the selected LiveKit robot track into a
+`<canvas>` → `sendRealtimeInput({media})`. Config/model/system-prompt in
+`src/lib/gemini-live-config.ts` (`GEMINI_LIVE_MODEL` env overrides the model). Token
+comes from `/api/gemini-live` which mints an ephemeral token from `GEMINI_API_KEY`
+(falls back to the raw key). The "Switch Camera" button cycles the agent's view over
+`mainCameraTrack` / `wristCameraTrack` / `detectionOverlayTrack` from `useLiveKit`.
 
 ### ROS contract
 All topic/port/service names live in **`src/lib/ros-config.ts`** (`ROS_CONFIG`). Add new
