@@ -1,2 +1,7 @@
 allowBuilds:
+  # @google/genai ships prebuilt dist/; its only lifecycle scripts are a no-op
+  # `preinstall` echo and a git-install-only `prepare`. Nothing to build here.
+  '@google/genai': false
+  # protobufjs' postinstall only prints peer-range warnings; it writes nothing.
+  protobufjs: false
   unrs-resolver: true
