@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@google/genai": "^0.1.1",
     "clsx": "^2.1.1",
     "livekit-client": "^2.22.1",
     "livekit-server-sdk": "^2.18.0",
@@ -18,7 +19,8 @@
     "react-dom": "^18.3.1",
     "roslib": "^1.4.1",
     "tailwind-merge": "^2.3.0",
-    "three": "^0.165.0"
+    "three": "^0.165.0",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/node": "^20.14.9",

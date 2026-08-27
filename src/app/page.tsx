@@ -281,47 +281,27 @@ export default function DashboardPage() {
           </div>
 
           {/* CENTER COLUMN: Radar & Status */}
-          <div className="lg:col-span-6 relative flex items-center justify-center h-full min-h-0">
-            
-            {/* Radar Circles */}
-            <div className="relative w-full max-w-[350px] aspect-square flex items-center justify-center">
-              {/* Outer faint circle */}
-              <div className="absolute inset-0 rounded-full border border-primary/10" />
-              {/* Inner dashed circle */}
-              <div className="absolute inset-[30px] rounded-full border border-dashed border-primary/20" />
-              {/* Grid crosshairs faintly visible */}
-              <div className="absolute w-[1px] h-full bg-primary/10" />
-              <div className="absolute h-[1px] w-full bg-primary/10" />
-              
-              {/* Radar scanner sweep animation */}
-              {isConnected && (
-                <div className="absolute inset-0 rounded-full bg-[conic-gradient(from_0deg,transparent_0%,transparent_80%,rgba(0,229,192,0.1)_100%)] animate-spin-slow" />
-              )}
-              
-              {/* Center Status */}
-              <div className="relative z-10 flex flex-col items-center justify-center">
-                {!isConnected ? (
-                  <>
-                    <div className="w-20 h-20 rounded-full border-2 border-danger/40 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(255,126,121,0.15)] bg-background">
-                      <WifiOff className="w-10 h-10 text-danger/80" />
-                    </div>
-                    <h2 className="text-xl font-bold tracking-widest text-danger animate-pulse-slow">CONNECTION LOST</h2>
-                    <p className="text-xs text-gray-500 font-mono mt-2 tracking-[0.2em]">SEARCHING FOR ROBOT SIGNAL...</p>
-                  </>
-                ) : (
-                  <>
-                    <div className="w-20 h-20 rounded-full border-2 border-primary/40 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(0,229,192,0.15)] bg-background">
-                      <Activity className="w-10 h-10 text-primary animate-pulse" />
-                    </div>
-                    <h2 className="text-xl font-bold tracking-widest text-primary animate-pulse-slow">SYSTEM ONLINE</h2>
-                    <p className="text-xs text-gray-500 font-mono mt-2 tracking-[0.2em]">
-                      {isLiveKitConnected ? 'WEBRTC LIVEKIT ACTIVE' : 'ALL SYSTEMS NOMINAL'}
-                    </p>
-                  </>
-                )}
+          <div className="lg:col-span-6 relative flex items-center justify-center h-full min-h-0 pointer-events-none">
+            {!(isConnected || isLiveKitConnected) && (
+              <div className="relative w-full max-w-[350px] aspect-square flex items-center justify-center">
+                {/* Outer faint circle */}
+                <div className="absolute inset-0 rounded-full border border-primary/10" />
+                {/* Inner dashed circle */}
+                <div className="absolute inset-[30px] rounded-full border border-dashed border-primary/20" />
+                {/* Grid crosshairs faintly visible */}
+                <div className="absolute w-[1px] h-full bg-primary/10" />
+                <div className="absolute h-[1px] w-full bg-primary/10" />
+                
+                {/* Center Status */}
+                <div className="relative z-10 flex flex-col items-center justify-center">
+                  <div className="w-20 h-20 rounded-full border-2 border-danger/40 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(255,126,121,0.15)] bg-background">
+                    <WifiOff className="w-10 h-10 text-danger/80" />
+                  </div>
+                  <h2 className="text-xl font-bold tracking-widest text-danger animate-pulse-slow">CONNECTION LOST</h2>
+                  <p className="text-xs text-gray-500 font-mono mt-2 tracking-[0.2em]">SEARCHING FOR ROBOT SIGNAL...</p>
+                </div>
               </div>
-
-            </div>
+            )}
           </div>
 
           {/* RIGHT COLUMN: Wrist Cam & Active Drawer Overlay */}
