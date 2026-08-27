@@ -57,6 +57,21 @@ export const LiveKitProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [videoTracks, setVideoTracks] = useState<VideoTrackInfo[]>([]);
 
   const roomRef = useRef<Room | null>(null);
+  const autoConnectedRef = useRef(false);
+
+  // Stable identity per browser tab (survives reloads, differs between tabs) so
+  // two clients never collide on the same LiveKit identity — a collision makes
+  // the server kick one with DUPLICATE_IDENTITY, which looked like the robot
+  // feed "randomly dropping" a few seconds into a session.
+  const getTabIdentity = (): string => {
+    if (typeof window === 'undefined') return `operator-${Math.random().toString(36).slice(2, 10)}`;
+    let id = sessionStorage.getItem('ecobot_lk_identity');
+    if (!id) {
+      id = `operator-${Math.random().toString(36).slice(2, 10)}`;
+      sessionStorage.setItem('ecobot_lk_identity', id);
+    }
+    return id;
+  };
 
   const setLivekitUrl = (url: string) => {
     setLivekitUrlState(url);
@@ -79,11 +94,13 @@ export const LiveKitProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   };
 
-  const updateTracks = (room: Room) => {
+  const updateTracks = (room: Room, reason?: string) => {
     const list: VideoTrackInfo[] = [];
+    let subscribedButNoTrack = 0;
     room.remoteParticipants.forEach((participant) => {
       participant.trackPublications.forEach((pub) => {
-        if (pub.kind === Track.Kind.Video && pub.track) {
+        if (pub.kind !== Track.Kind.Video) return;
+        if (pub.track) {
           list.push({
             sid: pub.trackSid,
             source: pub.source || 'camera',
@@ -91,9 +108,16 @@ export const LiveKitProvider: React.FC<{ children: React.ReactNode }> = ({ child
             participantIdentity: participant.identity,
             track: pub.track,
           });
+        } else if (pub.isSubscribed) {
+          subscribedButNoTrack++;
         }
       });
     });
+    console.log(
+      `[LiveKit] updateTracks(${reason || '?'}): ${list.length} video track(s), ` +
+        `${room.remoteParticipants.size} remote participant(s)` +
+        (subscribedButNoTrack ? `, ${subscribedButNoTrack} subscribed w/o track` : '')
+    );
     setVideoTracks(list);
   };
 
@@ -110,8 +134,11 @@ export const LiveKitProvider: React.FC<{ children: React.ReactNode }> = ({ child
     // If no token provided, fetch one dynamically from /api/livekit-token
     if (!targetToken) {
       try {
-        console.log(`[LiveKit] Minting access token for room '${targetRoom}'...`);
-        const res = await fetch(`/api/livekit-token?room=${encodeURIComponent(targetRoom)}`);
+        const identity = getTabIdentity();
+        console.log(`[LiveKit] Minting access token for room '${targetRoom}' as '${identity}'...`);
+        const res = await fetch(
+          `/api/livekit-token?room=${encodeURIComponent(targetRoom)}&identity=${encodeURIComponent(identity)}`
+        );
         const data = await res.json();
         if (data.token) {
           targetToken = data.token;
@@ -147,7 +174,13 @@ export const LiveKitProvider: React.FC<{ children: React.ReactNode }> = ({ child
       console.log(`[LiveKit] Connecting to ${targetUrl} (Room: ${targetRoom})...`);
 
       const room = new Room({
-        adaptiveStream: true,
+        // adaptiveStream pauses / unsubscribes a video track when its attached
+        // <video> element looks hidden or 0-sized to the Intersection/Resize
+        // observers. On the /live Agent tab the layout churn while a Gemini
+        // session connects was tripping that and killing the robot feed a few
+        // seconds in. This is an operator dashboard on desktop — always take the
+        // full stream.
+        adaptiveStream: false,
         dynacast: true,
       });
 
@@ -162,41 +195,72 @@ export const LiveKitProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setIsConnected(true);
         setIsConnecting(false);
         setError(null);
-        updateTracks(room);
+        updateTracks(room, 'Connected');
       });
 
-      room.on(RoomEvent.Disconnected, () => {
-        console.log(`[LiveKit] Disconnected from room: ${targetRoom}`);
+      room.on(RoomEvent.Disconnected, (reason) => {
+        console.warn(`[LiveKit] DISCONNECTED from room: ${targetRoom} (reason: ${reason ?? 'unknown'})`);
         setIsConnected(false);
         setIsConnecting(false);
         setVideoTracks([]);
       });
 
-      room.on(RoomEvent.TrackSubscribed, (track, pub, participant) => {
-        console.log(`[LiveKit] Track subscribed: ${pub.trackName || pub.trackSid} from ${participant.identity}`);
-        updateTracks(room);
+      room.on(RoomEvent.Reconnecting, () => {
+        console.warn('[LiveKit] Reconnecting…');
       });
 
-      room.on(RoomEvent.TrackUnsubscribed, () => {
-        updateTracks(room);
+      room.on(RoomEvent.Reconnected, () => {
+        console.log('[LiveKit] Reconnected');
+        updateTracks(room, 'Reconnected');
+      });
+
+      room.on(RoomEvent.TrackSubscribed, (track, pub, participant) => {
+        console.log(`[LiveKit] Track subscribed: ${pub.trackName || pub.trackSid} from ${participant.identity}`);
+        updateTracks(room, 'TrackSubscribed');
+      });
+
+      room.on(RoomEvent.TrackUnsubscribed, (track, pub, participant) => {
+        console.warn(`[LiveKit] Track UNSUBSCRIBED: ${pub.trackName || pub.trackSid} from ${participant.identity}`);
+        updateTracks(room, 'TrackUnsubscribed');
+      });
+
+      room.on(RoomEvent.TrackUnpublished, (pub, participant) => {
+        console.warn(`[LiveKit] Track UNPUBLISHED: ${pub.trackName || pub.trackSid} from ${participant.identity}`);
+        updateTracks(room, 'TrackUnpublished');
       });
 
       room.on(RoomEvent.TrackMuted, () => {
-        updateTracks(room);
+        updateTracks(room, 'TrackMuted');
       });
 
       room.on(RoomEvent.TrackUnmuted, () => {
-        updateTracks(room);
+        updateTracks(room, 'TrackUnmuted');
+      });
+
+      room.on(RoomEvent.TrackStreamStateChanged, (pub, streamState, participant) => {
+        console.log(`[LiveKit] Stream state: ${pub.trackName || pub.trackSid} -> ${streamState} (${participant.identity})`);
+        updateTracks(room, 'TrackStreamStateChanged');
+      });
+
+      room.on(RoomEvent.TrackSubscriptionStatusChanged, (pub, status, participant) => {
+        console.log(`[LiveKit] Subscription status: ${pub.trackName || pub.trackSid} -> ${status} (${participant.identity})`);
+        updateTracks(room, 'TrackSubscriptionStatusChanged');
+      });
+
+      room.on(RoomEvent.ConnectionQualityChanged, (quality, participant) => {
+        if (quality === 'poor' || quality === 'lost') {
+          console.warn(`[LiveKit] Connection quality ${quality} for ${participant?.identity ?? 'local'}`);
+        }
       });
 
       room.on(RoomEvent.ParticipantConnected, (participant) => {
         console.log(`[LiveKit] Participant connected: ${participant.identity}`);
-        updateTracks(room);
+        updateTracks(room, 'ParticipantConnected');
       });
 
       room.on(RoomEvent.ParticipantDisconnected, (participant) => {
-        console.log(`[LiveKit] Participant disconnected: ${participant.identity}`);
-        updateTracks(room);
+        console.warn(`[LiveKit] Participant DISCONNECTED: ${participant.identity}`);
+        updateTracks(room, 'ParticipantDisconnected');
       });
 
       await room.connect(targetUrl, targetToken);
@@ -219,9 +283,13 @@ export const LiveKitProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setVideoTracks([]);
   }, []);
 
-  // Auto-connect on mount
+  // Auto-connect on mount — exactly once. (connect() is recreated when the
+  // minted token lands in state; without this guard the effect re-fired and
+  // opened a second connection with the same token/identity → DUPLICATE_IDENTITY
+  // kick + reconnect loop that dropped every subscribed track.)
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && !autoConnectedRef.current) {
+      autoConnectedRef.current = true;
       const savedUrl = localStorage.getItem('ecobot_livekit_url');
       const savedRoom = localStorage.getItem('ecobot_livekit_room');
       const savedToken = localStorage.getItem('ecobot_livekit_token');

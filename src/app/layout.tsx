@@ -23,9 +23,12 @@ export default function RootLayout({
           <LiveKitProvider>
             <div className="flex flex-col w-full h-full relative">
               <Navbar />
-              <div className="flex flex-1">
+              <div className="flex flex-1 min-h-0">
                 <Sidebar />
-                <main className="flex-1 w-full h-full overflow-hidden p-4 md:p-6 pb-24 md:pb-6">
+                {/* min-h-0 above + this scroll container keep `h-full` pages
+                    (/, /live, /map3d) bounded to the viewport while letting
+                    taller scrolling pages (/arm, /mission) scroll. */}
+                <main className="flex-1 w-full h-full overflow-y-auto overflow-x-hidden p-4 md:p-6 pb-24 md:pb-6">
                   {children}
                 </main>
               </div>
