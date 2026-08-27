@@ -2,14 +2,18 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRos, isTunnelHost, isLocalOrLanHost } from '@/hooks/useRos';
+import { useLiveKit } from '@/hooks/useLiveKit';
+import { LiveKitVideoPlayer } from './LiveKitVideoPlayer';
 import { ROS_CONFIG } from '@/lib/ros-config';
-import { Camera, RefreshCw, AlertCircle, ShieldAlert, ExternalLink, Wifi, Eye } from 'lucide-react';
+import { Camera, RefreshCw, AlertCircle, ShieldAlert, ExternalLink, Wifi, Eye, Radio } from 'lucide-react';
+import { RemoteTrack } from 'livekit-client';
 
 export interface StreamOption {
   label: string;
   port: number;
   endpoint: string;
   rosTopic?: string;
+  livekitTrackName?: string;
 }
 
 interface CameraFeedProps {
@@ -17,6 +21,7 @@ interface CameraFeedProps {
   port: number;
   endpoint?: string;
   rosTopic?: string;
+  livekitTrackName?: string;
   aspectRatio?: 'video' | 'square';
   streamOptions?: StreamOption[];
 }
@@ -79,14 +84,17 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
   port: initialPort,
   endpoint: initialEndpoint = 'stream.mjpg',
   rosTopic: initialRosTopic,
+  livekitTrackName: initialLivekitTrackName,
   aspectRatio = 'video',
   streamOptions,
 }) => {
   const { robotHost, streamHost, isConnected, subscribe, detections } = useRos();
+  const { isConnected: isLiveKitConnected, videoTracks, mainCameraTrack, wristCameraTrack } = useLiveKit();
+
   const [selectedOptionIndex, setSelectedOptionIndex] = useState<number>(0);
   const [streamError, setStreamError] = useState<boolean>(false);
   const [refreshKey, setRefreshKey] = useState<number>(0);
-  const [useRosStream, setUseRosStream] = useState<boolean>(false);
+  const [streamMode, setStreamMode] = useState<'http' | 'ros_topic' | 'livekit'>('http');
   const [rosImageData, setRosImageData] = useState<string | null>(null);
   const [showOverlays, setShowOverlays] = useState<boolean>(true);
 
@@ -95,13 +103,40 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
   const activeRosTopic = streamOptions
     ? streamOptions[selectedOptionIndex].rosTopic || initialRosTopic
     : initialRosTopic;
+  const activeLivekitTrackName = streamOptions
+    ? streamOptions[selectedOptionIndex].livekitTrackName || initialLivekitTrackName
+    : initialLivekitTrackName;
+
+  // Find matching LiveKit track
+  const matchingLiveKitTrack = React.useMemo(() => {
+    if (!isLiveKitConnected) return null;
+    if (activeLivekitTrackName) {
+      const match = videoTracks.find((t) =>
+        t.trackName.toLowerCase().includes(activeLivekitTrackName.toLowerCase()) ||
+        t.source.toLowerCase().includes(activeLivekitTrackName.toLowerCase())
+      );
+      if (match) return match.track;
+    }
+    // Fallback: match by title or port
+    if (activePort === ROS_CONFIG.ARM_CAMERA_PORT || title.toLowerCase().includes('wrist') || title.toLowerCase().includes('arm')) {
+      return wristCameraTrack;
+    }
+    return mainCameraTrack;
+  }, [isLiveKitConnected, activeLivekitTrackName, videoTracks, activePort, title, wristCameraTrack, mainCameraTrack]);
+
+  // Auto-switch to LiveKit if connected and track exists
+  useEffect(() => {
+    if (isLiveKitConnected && matchingLiveKitTrack && streamMode === 'http') {
+      setStreamMode('livekit');
+    }
+  }, [isLiveKitConnected, matchingLiveKitTrack, streamMode]);
 
   const streamUrl = resolveStreamUrl(robotHost, streamHost, activePort, activeEndpoint, refreshKey);
   const isHttpsPage = typeof window !== 'undefined' && window.location.protocol === 'https:';
 
   // ROS Topic Image Subscription (Base64 CompressedImage)
   useEffect(() => {
-    if (!useRosStream || !isConnected || !activeRosTopic) return;
+    if (streamMode !== 'ros_topic' || !isConnected || !activeRosTopic) return;
 
     const unsub = subscribe(
       activeRosTopic,
@@ -115,7 +150,7 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
     );
 
     return () => unsub();
-  }, [useRosStream, isConnected, activeRosTopic, subscribe]);
+  }, [streamMode, isConnected, activeRosTopic, subscribe]);
 
   const handleRefresh = () => {
     setStreamError(false);
@@ -158,21 +193,41 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
             </div>
           )}
 
-          {activeRosTopic && (
+          {/* LiveKit Mode Toggle */}
+          {isLiveKitConnected && matchingLiveKitTrack && (
             <button
               onClick={() => {
-                setUseRosStream((v) => !v);
+                setStreamMode((m) => (m === 'livekit' ? 'http' : 'livekit'));
                 setStreamError(false);
               }}
               className={`p-1 px-1.5 rounded text-[11px] font-semibold flex items-center gap-1 transition-colors ${
-                useRosStream
+                streamMode === 'livekit'
+                  ? 'bg-primary text-black font-bold shadow-[0_0_10px_rgba(0,229,192,0.4)]'
+                  : 'bg-card-border/60 text-gray-400 hover:text-white'
+              }`}
+              title="LiveKit WebRTC Stream (<100ms latency)"
+            >
+              <Radio className="w-3 h-3" />
+              <span>LiveKit</span>
+            </button>
+          )}
+
+          {/* ROS Topic Stream Toggle */}
+          {activeRosTopic && (
+            <button
+              onClick={() => {
+                setStreamMode((m) => (m === 'ros_topic' ? 'http' : 'ros_topic'));
+                setStreamError(false);
+              }}
+              className={`p-1 px-1.5 rounded text-[11px] font-semibold flex items-center gap-1 transition-colors ${
+                streamMode === 'ros_topic'
                   ? 'bg-emerald-600 text-white'
                   : 'bg-card-border/60 text-gray-400 hover:text-white'
               }`}
               title="Toggle ROS WebSocket Compressed Image Stream"
             >
               <Wifi className="w-3 h-3" />
-              <span>{useRosStream ? 'ROS WSS' : 'HTTP'}</span>
+              <span>ROS WSS</span>
             </button>
           )}
 
@@ -213,7 +268,15 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
               <span className="text-[10px] font-mono text-gray-400">{title} • Port {activePort}</span>
             </div>
           </div>
-        ) : useRosStream && rosImageData ? (
+        ) : streamMode === 'livekit' && matchingLiveKitTrack ? (
+          <LiveKitVideoPlayer
+            track={matchingLiveKitTrack}
+            objectFit="contain"
+            className="w-full h-full"
+            showStats={true}
+            trackName={activeLivekitTrackName || title}
+          />
+        ) : streamMode === 'ros_topic' && rosImageData ? (
           <img
             src={rosImageData}
             alt={title}
@@ -241,14 +304,26 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
                 </ol>
               </div>
             ) : (
-              <span className="text-gray-400 text-[11px]">Ensure the video server (mjpg_streamer / ros_rtsp) is running on the robot host.</span>
+              <span className="text-gray-400 text-[11px]">Ensure the video server (mjpg_streamer / ros_rtsp / LiveKit) is running on the robot host.</span>
             )}
 
             <div className="flex items-center gap-2 mt-1 flex-wrap justify-center">
+              {matchingLiveKitTrack && (
+                <button
+                  onClick={() => {
+                    setStreamMode('livekit');
+                    setStreamError(false);
+                  }}
+                  className="px-3 py-1 bg-primary/20 border border-primary/40 text-primary rounded text-xs hover:bg-primary/30 font-semibold flex items-center gap-1"
+                >
+                  <Radio className="w-3 h-3" />
+                  Use LiveKit WebRTC
+                </button>
+              )}
               {activeRosTopic && (
                 <button
                   onClick={() => {
-                    setUseRosStream(true);
+                    setStreamMode('ros_topic');
                     setStreamError(false);
                   }}
                   className="px-3 py-1 bg-emerald-600/40 border border-emerald-500/50 text-emerald-200 rounded text-xs hover:bg-emerald-600/70 font-semibold flex items-center gap-1"
@@ -291,7 +366,6 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
             {detections.map((det, i) => {
               if (!det.box || !Array.isArray(det.box) || det.box.length < 4) return null;
               const [x1, y1, x2, y2] = det.box;
-              // Assuming 640x480 coordinate space normalized to percentages
               const left = (x1 / 640) * 100;
               const top = (y1 / 480) * 100;
               const width = ((x2 - x1) / 640) * 100;

@@ -2,21 +2,43 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRos, isLocalOrLanHost } from '@/hooks/useRos';
+import { useLiveKit } from '@/hooks/useLiveKit';
 import { ROS_CONFIG } from '@/lib/ros-config';
 import { CameraFeed } from '@/components/video/CameraFeed';
-import { Settings, Save, Server, Video, CheckCircle2, ShieldAlert, Globe, HelpCircle, Laptop, Wifi, Sparkles, RefreshCw } from 'lucide-react';
+import { Settings, Save, Server, Video, CheckCircle2, ShieldAlert, Globe, HelpCircle, Laptop, Wifi, Sparkles, RefreshCw, Radio, Link as LinkIcon, Unlink } from 'lucide-react';
 
 export default function SettingsPage() {
   const { robotHost, streamHost, setRobotHost, setStreamHost, isConnected, resolvedRosUrl } = useRos();
+  const {
+    livekitUrl,
+    roomName,
+    token,
+    isConnected: isLiveKitConnected,
+    isConnecting: isLiveKitConnecting,
+    error: livekitError,
+    videoTracks,
+    connect: connectLiveKit,
+    disconnect: disconnectLiveKit,
+    setLivekitUrl,
+    setRoomName,
+    setToken,
+  } = useLiveKit();
+
   const [hostInput, setHostInput] = useState(robotHost);
   const [streamHostInput, setStreamHostInput] = useState(streamHost);
   const [cameraSourceInput, setCameraSourceInput] = useState("");
+  const [lkUrlInput, setLkUrlInput] = useState(livekitUrl);
+  const [lkRoomInput, setLkRoomInput] = useState(roomName);
+  const [lkTokenInput, setLkTokenInput] = useState(token);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
   useEffect(() => {
     setHostInput(robotHost);
     setStreamHostInput(streamHost);
-  }, [robotHost, streamHost]);
+    setLkUrlInput(livekitUrl);
+    setLkRoomInput(roomName);
+    setLkTokenInput(token);
+  }, [robotHost, streamHost, livekitUrl, roomName, token]);
 
   const isHttpsPage = typeof window !== 'undefined' && window.location.protocol === 'https:';
 
@@ -24,6 +46,9 @@ export default function SettingsPage() {
     e.preventDefault();
     setRobotHost(hostInput.trim());
     setStreamHost(streamHostInput.trim());
+    setLivekitUrl(lkUrlInput.trim());
+    setRoomName(lkRoomInput.trim());
+    setToken(lkTokenInput.trim());
     
     // Tell the Python YOLO backend to start watching this video feed if provided
     if (cameraSourceInput.trim()) {
@@ -55,6 +80,17 @@ export default function SettingsPage() {
     setTimeout(() => setSavedSuccess(false), 3000);
   };
 
+  const handleLiveKitConnectToggle = () => {
+    if (isLiveKitConnected) {
+      disconnectLiveKit();
+    } else {
+      setLivekitUrl(lkUrlInput.trim());
+      setRoomName(lkRoomInput.trim());
+      setToken(lkTokenInput.trim());
+      connectLiveKit(lkUrlInput.trim(), lkTokenInput.trim(), lkRoomInput.trim());
+    }
+  };
+
   return (
     <div className="max-w-4xl space-y-6 pb-12">
       <div>
@@ -63,7 +99,7 @@ export default function SettingsPage() {
           Dashboard Configuration
         </h2>
         <p className="text-xs text-gray-400 mt-1">
-          Configure network connection endpoints, video streaming hosts, and target Jetson device settings.
+          Configure network connection endpoints, LiveKit WebRTC, and target Jetson device settings.
         </p>
       </div>
 
@@ -119,6 +155,81 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {/* LiveKit WebRTC Configuration Card */}
+      <div className="bg-card border border-card-border rounded-xl p-5 shadow-lg space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm font-bold text-white">
+            <Radio className="w-4 h-4 text-primary animate-pulse" />
+            <span>LiveKit WebRTC Connection (Ultra-Low Latency &lt;100ms)</span>
+          </div>
+          <span className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold ${
+            isLiveKitConnected ? 'bg-primary/20 text-primary border border-primary/40' : 'bg-card-border text-gray-400'
+          }`}>
+            {isLiveKitConnected ? `CONNECTED (${videoTracks.length} tracks)` : isLiveKitConnecting ? 'CONNECTING...' : 'DISCONNECTED'}
+          </span>
+        </div>
+
+        <p className="text-xs text-gray-400">
+          LiveKit streams video tracks and telemetry from ROS 2 directly to browser WebRTC with adaptive bitrate and sub-second latency over the internet.
+        </p>
+
+        {livekitError && (
+          <div className="p-2.5 bg-rose-500/20 border border-rose-500/40 rounded-lg text-rose-300 text-xs">
+            {livekitError}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs text-gray-400 font-medium mb-1">LiveKit Server WebSocket URL</label>
+            <input
+              type="text"
+              value={lkUrlInput}
+              onChange={(e) => setLkUrlInput(e.target.value)}
+              placeholder="wss://your-project.livekit.cloud"
+              className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-primary"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs text-gray-400 font-medium mb-1">Room Name</label>
+            <input
+              type="text"
+              value={lkRoomInput}
+              onChange={(e) => setLkRoomInput(e.target.value)}
+              placeholder="ecobot-teleop"
+              className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-primary"
+            />
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-xs text-gray-400 font-medium mb-1">LiveKit Access Token (Optional if server API keys configured)</label>
+            <input
+              type="password"
+              value={lkTokenInput}
+              onChange={(e) => setLkTokenInput(e.target.value)}
+              placeholder="eyJhbGciOiJIUzI1NiIsIn..."
+              className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-primary"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 pt-1">
+          <button
+            type="button"
+            onClick={handleLiveKitConnectToggle}
+            className={`px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
+              isLiveKitConnected
+                ? 'bg-rose-600/30 border border-rose-500/40 text-rose-300 hover:bg-rose-600/50'
+                : 'bg-primary/20 border border-primary/40 text-primary hover:bg-primary/30'
+            }`}
+          >
+            {isLiveKitConnected ? <Unlink className="w-3.5 h-3.5" /> : <LinkIcon className="w-3.5 h-3.5" />}
+            <span>{isLiveKitConnected ? 'Disconnect LiveKit' : 'Connect LiveKit WebRTC'}</span>
+          </button>
+        </div>
+      </div>
+
       {/* HTTPS / Mixed Content Notice */}
       {isHttpsPage && (
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-5 space-y-3">
@@ -127,7 +238,7 @@ export default function SettingsPage() {
             <span>HTTPS Video Stream Notice (Chrome / Edge Mixed Content)</span>
           </div>
           <p className="text-xs text-amber-200/90 leading-relaxed">
-            When loading the dashboard over HTTPS, browsers block insecure HTTP MJPEG video streams on ports <code className="bg-black/40 px-1.5 py-0.5 rounded font-mono text-amber-300">8081</code> & <code className="bg-black/40 px-1.5 py-0.5 rounded font-mono text-amber-300">8085</code> by default.
+            When loading the dashboard over HTTPS, browsers block insecure HTTP MJPEG video streams on ports <code className="bg-black/40 px-1.5 py-0.5 rounded font-mono text-amber-300">8081</code> & <code className="bg-black/40 px-1.5 py-0.5 rounded font-mono text-amber-300">8085</code> by default. LiveKit WebRTC bypasses this completely!
           </p>
 
           <div className="bg-black/40 border border-amber-500/20 rounded-lg p-3 space-y-2 text-xs">
@@ -149,7 +260,7 @@ export default function SettingsPage() {
       <form onSubmit={handleSave} className="bg-card border border-card-border rounded-xl p-5 shadow-lg space-y-4">
         <div className="flex items-center gap-2 text-sm font-bold text-white">
           <Server className="w-4 h-4 text-blue-400" />
-          <span>Robot Network Endpoints</span>
+          <span>Robot Network Endpoints (ROS 2 Bridge & HTTP Streams)</span>
         </div>
 
         <div className="space-y-4">
@@ -229,12 +340,14 @@ export default function SettingsPage() {
             port={ROS_CONFIG.REALSENSE_STREAM_PORT}
             endpoint="stream.mjpg"
             rosTopic={ROS_CONFIG.TOPICS.CAMERA_COLOR_COMPRESSED}
+            livekitTrackName="realsense"
           />
           <CameraFeed
             title="Wrist Camera (Port 8085)"
             port={ROS_CONFIG.ARM_CAMERA_PORT}
             endpoint="arm_camera.mjpg"
             rosTopic={ROS_CONFIG.TOPICS.CAMERA_ARM_COMPRESSED}
+            livekitTrackName="wrist"
           />
         </div>
       </div>

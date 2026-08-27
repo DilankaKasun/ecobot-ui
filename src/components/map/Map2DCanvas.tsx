@@ -2,11 +2,13 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import { useOdometry } from '@/hooks/useOdometry';
-import { MapPin, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
+import { useDetections } from '@/hooks/useDetections';
+import { MapPin, RotateCcw, ZoomIn, ZoomOut, Target } from 'lucide-react';
 
 export const Map2DCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const { odom } = useOdometry();
+  const { detections } = useDetections();
   const [trace, setTrace] = useState<{ x: number; y: number }[]>([]);
   const [scale, setScale] = useState<number>(30); // pixels per meter
 
@@ -64,7 +66,7 @@ export const Map2DCanvas: React.FC = () => {
 
     // Draw trace
     if (trace.length > 1) {
-      ctx.strokeStyle = '#3B82F6';
+      ctx.strokeStyle = '#00E5C0';
       ctx.lineWidth = 2;
       ctx.beginPath();
       trace.forEach((pt, i) => {
@@ -86,7 +88,7 @@ export const Map2DCanvas: React.FC = () => {
     ctx.rotate(-yawRad);
 
     // Robot chassis circle
-    ctx.fillStyle = '#10B981';
+    ctx.fillStyle = '#00E5C0';
     ctx.beginPath();
     ctx.arc(0, 0, 10, 0, Math.PI * 2);
     ctx.fill();
@@ -104,14 +106,46 @@ export const Map2DCanvas: React.FC = () => {
     ctx.fill();
 
     ctx.restore();
-  }, [odom, trace, scale]);
+
+    // Draw Detected Objects in 2D
+    detections.forEach((det) => {
+      const dist = det.distance ?? det.center_z;
+      if (typeof dist !== 'number' || dist <= 0) return;
+      const lateral = typeof det.center_x === 'number' ? -det.center_x : 0;
+
+      // Project target in world frame
+      const objX = odom.x + dist * Math.cos(yawRad) - lateral * Math.sin(yawRad);
+      const objY = odom.y + dist * Math.sin(yawRad) + lateral * Math.cos(yawRad);
+
+      const ox = cx + objX * scale;
+      const oy = cy - objY * scale;
+
+      // Glow circle
+      ctx.fillStyle = 'rgba(236, 72, 153, 0.3)';
+      ctx.beginPath();
+      ctx.arc(ox, oy, 10, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Object point
+      ctx.fillStyle = '#EC4899';
+      ctx.beginPath();
+      ctx.arc(ox, oy, 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Label
+      ctx.font = '9px monospace';
+      ctx.fillStyle = '#F3F4F6';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${det.class_name} (${dist.toFixed(1)}m)`, ox, oy - 7);
+    });
+  }, [odom, trace, scale, detections]);
 
   return (
     <div className="bg-card border border-card-border rounded-xl p-4 flex flex-col justify-between">
       <div className="flex items-center justify-between mb-3 text-xs">
         <div className="flex items-center gap-1.5 font-semibold text-gray-200">
-          <MapPin className="w-4 h-4 text-blue-400" />
-          <span>2D Odometry & Path Trace</span>
+          <MapPin className="w-4 h-4 text-primary" />
+          <span>2D Map & AMCL Localization</span>
         </div>
         <div className="flex items-center gap-1">
           <button
@@ -139,11 +173,12 @@ export const Map2DCanvas: React.FC = () => {
       </div>
 
       <div className="w-full flex items-center justify-center bg-background rounded-lg border border-card-border overflow-hidden">
-        <canvas ref={canvasRef} width={400} height={280} className="w-full h-auto block" />
+        <canvas ref={canvasRef} width={400} height={240} className="w-full h-auto block" />
       </div>
 
       <div className="flex items-center justify-between text-[11px] text-gray-500 mt-3 font-mono">
         <span>Scale: {(1 / (scale / 100)).toFixed(0)} cm/grid</span>
+        {detections.length > 0 && <span className="text-pink-400 font-semibold flex items-center gap-1"><Target className="w-3 h-3" /> {detections.length} objects</span>}
         <span>Points: {trace.length}</span>
       </div>
     </div>
