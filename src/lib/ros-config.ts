@@ -1,5 +1,5 @@
 export const ROS_CONFIG = {
-  DEFAULT_ROBOT_HOST: '192.168.8.105',
+  DEFAULT_ROBOT_HOST: 'wss://functional-hugh-focusing-hierarchy.trycloudflare.com',
   ROSBRIDGE_PORT: 9090,
   REALSENSE_STREAM_PORT: 8081,
   WEBRTC_SIGNALING_PORT: 8082,

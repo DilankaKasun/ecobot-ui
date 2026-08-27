@@ -21,69 +21,37 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onCloseMobile }) => {
   const pathname = usePathname();
 
-  const isItemActive = (href: string) => {
-    if (href === '/') return pathname === '/';
-    return pathname === href || pathname.startsWith(href);
-  };
-
-  const navContent = (
-    <div className="flex flex-col justify-between h-full p-4">
-      <div className="space-y-4">
-        {onCloseMobile && (
-          <div className="md:hidden flex items-center justify-between pb-2 border-b border-card-border">
-            <span className="font-bold text-white text-sm">Navigation Menu</span>
-            <button
-              onClick={onCloseMobile}
-              className="p-1 rounded-lg text-gray-400 hover:text-white hover:bg-card-border"
-              aria-label="Close menu"
+  return (
+    <aside className="hidden md:flex w-16 shrink-0 border-r border-white/5 bg-card/20 backdrop-blur-md shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] flex-col items-center py-6 min-h-full">
+      <nav className="flex flex-col gap-4">
+        {NAV_ITEMS.map((item) => {
+          const Icon = item.icon;
+          const isActive = pathname === item.href;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              title={item.label}
+              className={`flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-300 ${
+                isActive
+                  ? 'bg-primary/90 text-background shadow-[0_0_20px_rgba(0,229,192,0.5)] backdrop-blur-md'
+                  : 'text-gray-500 hover:text-gray-200 hover:bg-white/5'
+              }`}
             >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        )}
-
-        <nav className="space-y-1.5">
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const active = isItemActive(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={onCloseMobile}
-                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                  active
-                    ? 'bg-blue-600/15 text-blue-400 border border-blue-500/30'
-                    : 'text-gray-400 hover:text-gray-200 hover:bg-card-border/40'
-                }`}
-              >
-                <Icon className={`w-5 h-5 ${active ? 'text-blue-400' : 'text-gray-400'}`} />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-      </div>
-
-      <div className="bg-background/60 border border-card-border/60 rounded-xl p-3.5 text-xs text-gray-400 mt-4">
-        <div className="flex items-center justify-between mb-2">
-          <span className="font-semibold text-gray-300">Jetson Sensors</span>
-          <Eye className="w-4 h-4 text-blue-400" />
-        </div>
-        <div className="space-y-1 font-mono text-[11px]">
-          <div className="flex justify-between">
-            <span>D415 RGB-D:</span>
-            <span className="text-emerald-400">Active (30fps)</span>
-          </div>
-          <div className="flex justify-between">
-            <span>YOLOv8 Engine:</span>
-            <span className="text-emerald-400">TensorRT</span>
-          </div>
-          <div className="flex justify-between">
-            <span>ESP32 ToF:</span>
-            <span className="text-emerald-400">Online</span>
-          </div>
-        </div>
+              <Icon className="w-5 h-5" />
+            </Link>
+          );
+        })}
+      </nav>
+      
+      <div className="mt-auto pb-4">
+        <Link
+          href="/settings"
+          title="Configuration"
+          className="flex items-center justify-center w-10 h-10 rounded-xl text-gray-500 hover:text-gray-200 hover:bg-white/5 transition-all duration-300"
+        >
+          <Settings className="w-5 h-5" />
+        </Link>
       </div>
     </div>
   );

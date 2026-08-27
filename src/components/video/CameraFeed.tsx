@@ -32,17 +32,17 @@ export function resolveStreamUrl(
 
   let targetHost = (streamHost && streamHost.trim()) || robotHost.trim();
 
-  // Tunnel domain hosts don't expose ports 8081/8085 directly, default to local IP
-  if (isTunnelHost(targetHost)) {
-    targetHost = ROS_CONFIG.DEFAULT_ROBOT_HOST;
-  }
-
   const cleanHost = targetHost
     .replace(/^wss?:\/\//, '')
     .replace(/^https?:\/\//, '')
     .split(':')[0];
 
   const scheme = (targetHost.startsWith('wss://') || targetHost.startsWith('https://')) ? 'https' : 'http';
+
+  // If using a Cloudflare/Ngrok tunnel, the port is handled by the tunnel, so omit it.
+  if (isTunnelHost(targetHost)) {
+    return `${scheme}://${cleanHost}/${endpoint}?t=${refreshKey}`;
+  }
 
   return `${scheme}://${cleanHost}:${port}/${endpoint}?t=${refreshKey}`;
 }
@@ -55,8 +55,7 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
   aspectRatio = 'video',
   streamOptions,
 }) => {
-  const { robotHost, streamHost, isConnected, subscribe } = useRos();
-  const [selectedOptionIndex, setSelectedOptionIndex] = useState<number>(0);
+  const { robotHost, streamHost, isConnected, detections } = useRos();
   const [streamError, setStreamError] = useState<boolean>(false);
   const [refreshKey, setRefreshKey] = useState<number>(0);
   const [useRosStream, setUseRosStream] = useState<boolean>(false);
@@ -158,21 +157,7 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
           aspectRatio === 'video' ? 'aspect-video' : 'aspect-square'
         }`}
       >
-        {!isConnected ? (
-          <div className="flex flex-col items-center gap-2 text-gray-500 text-xs">
-            <AlertCircle className="w-6 h-6 text-rose-500/80" />
-            <span>Robot Offline</span>
-          </div>
-        ) : useRosStream ? (
-          rosImageData ? (
-            <img src={rosImageData} alt={title} className="w-full h-full object-contain" />
-          ) : (
-            <div className="flex flex-col items-center gap-2 text-emerald-400 text-xs p-4 text-center font-mono">
-              <Wifi className="w-6 h-6 animate-pulse text-emerald-400" />
-              <span>Subscribing to {activeRosTopic}...</span>
-            </div>
-          )
-        ) : streamError ? (
+        {streamError ? (
           <div className="flex flex-col items-center gap-2 text-gray-300 text-xs p-4 text-center max-w-sm">
             {isHttpsPage ? (
               <ShieldAlert className="w-7 h-7 text-amber-400" />
@@ -228,6 +213,14 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
                 </a>
               )}
             </div>
+          </div>
+        ) : (robotHost === 'mock' && (!streamHost || streamHost === 'mock' || streamHost === ROS_CONFIG.DEFAULT_ROBOT_HOST)) ? (
+          <div className="w-full h-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900 to-black flex items-center justify-center relative overflow-hidden">
+             <div className="absolute inset-0 opacity-20 bg-[linear-gradient(rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[size:20px_20px]" />
+             <div className="flex flex-col items-center gap-2 z-10 text-blue-300/80">
+               <Camera className="w-8 h-8 opacity-50" />
+               <span className="text-sm font-mono tracking-wider font-bold">MOCK CAMERA FEED</span>
+             </div>
           </div>
         ) : (
           <img

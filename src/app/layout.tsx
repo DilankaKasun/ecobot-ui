@@ -15,9 +15,18 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
-      <body className="bg-background text-gray-100 min-h-screen" suppressHydrationWarning>
+      <body className="bg-background text-gray-100 h-screen w-screen overflow-hidden flex flex-col" suppressHydrationWarning>
         <RosProvider>
-          <DashboardShell>{children}</DashboardShell>
+          <div className="flex flex-col w-full h-full relative">
+            <Navbar />
+            <div className="flex flex-1">
+              <Sidebar />
+              <main className="flex-1 w-full h-full overflow-hidden p-4 md:p-6 pb-24 md:pb-6">
+                {children}
+              </main>
+            </div>
+            <MobileNav />
+          </div>
         </RosProvider>
       </body>
     </html>
