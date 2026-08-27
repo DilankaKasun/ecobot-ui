@@ -3,10 +3,12 @@
 import React, { useState } from 'react';
 import { useRos } from '@/hooks/useRos';
 import { useOdometry } from '@/hooks/useOdometry';
+import { resolveStreamUrl } from '@/components/video/CameraFeed';
+import { ROS_CONFIG } from '@/lib/ros-config';
 import { Info, Crosshair, Activity, Zap, Maximize2, VideoOff, WifiOff, ChevronDown, ChevronUp, ArrowRightLeft } from 'lucide-react';
 
 export default function DashboardPage() {
-  const { isConnected, streamHost } = useRos();
+  const { isConnected, robotHost, streamHost } = useRos();
   const { odom, runMode } = useOdometry();
 
   // Simple state to minimize/expand panels
@@ -26,8 +28,8 @@ export default function DashboardPage() {
   // Helper to format numbers like the mockup
   const formatNum = (num: number) => num.toFixed(2);
 
-  const bgFeedUrl = isSwapped ? `http://${streamHost}:8085/arm_camera.mjpg` : `http://${streamHost}:8081/stream.mjpg`;
-  const pipFeedUrl = isSwapped ? `http://${streamHost}:8081/stream.mjpg` : `http://${streamHost}:8085/arm_camera.mjpg`;
+  const bgFeedUrl = resolveStreamUrl(robotHost, streamHost, isSwapped ? ROS_CONFIG.ARM_CAMERA_PORT : ROS_CONFIG.REALSENSE_STREAM_PORT, isSwapped ? 'arm_camera.mjpg' : 'stream.mjpg', 0);
+  const pipFeedUrl = resolveStreamUrl(robotHost, streamHost, isSwapped ? ROS_CONFIG.REALSENSE_STREAM_PORT : ROS_CONFIG.ARM_CAMERA_PORT, isSwapped ? 'stream.mjpg' : 'arm_camera.mjpg', 0);
   const pipLabel = isSwapped ? "Main Camera Feed" : "Manipulator Wrist Cam";
 
   return (
