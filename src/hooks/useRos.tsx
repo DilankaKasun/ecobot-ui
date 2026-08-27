@@ -113,7 +113,6 @@ export const RosProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isConnecting, setIsConnecting] = useState<boolean>(true);
   const [detections, setDetections] = useState<any[]>([]);
   const rosRef = useRef<ROSLIB.Ros | null>(null);
-  const topicsRef = useRef<Map<string, ROSLIB.Topic>>(new Map());
 
   // Initialize host dynamically from browser URL query param, saved setting, env vars, or default
   useEffect(() => {
@@ -245,7 +244,6 @@ export const RosProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     ros.on('close', () => {
       console.log(`[RosProvider] Disconnected from ${resolved.url}`);
-      topicsRef.current.clear();
       setIsConnected(false);
       setIsConnecting(false);
     });
@@ -254,7 +252,6 @@ export const RosProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     return () => {
       try {
-        topicsRef.current.clear();
         ros?.close();
       } catch (e) {
         // ignore
@@ -272,16 +269,11 @@ export const RosProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.warn(`[RosProvider] Blocked publish to ${topicName} because dashboard is in Observer (View Only) mode.`);
       return;
     }
-    const topicKey = `${topicName}:${messageType}`;
-    let topic = topicsRef.current.get(topicKey);
-    if (!topic) {
-      topic = new ROSLIB.Topic({
-        ros: rosRef.current,
-        name: topicName,
-        messageType: messageType,
-      });
-      topicsRef.current.set(topicKey, topic);
-    }
+    const topic = new ROSLIB.Topic({
+      ros: rosRef.current,
+      name: topicName,
+      messageType: messageType,
+    });
     const rosMsg = new ROSLIB.Message(messageData);
     topic.publish(rosMsg);
   }, [isConnected, operatorMode, robotHost]);

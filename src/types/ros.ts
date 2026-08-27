@@ -11,10 +11,7 @@ export interface DetectedObject {
   class_name: string;
   confidence: number;
   distance?: number;
-  depth?: number;
-  box?: [number, number, number, number]; // [x1, y1, x2, y2] 2D pixels
-  box_3d?: [number, number, number, number, number, number]; // [cx, cy, cz, l, w, h]
-  dimensions?: [number, number, number]; // [l, w, h] meters
+  box?: [number, number, number, number]; // [x1, y1, x2, y2]
   center_x?: number;
   center_y?: number;
   center_z?: number;
