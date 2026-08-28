@@ -8,7 +8,11 @@ import { Cpu, Home } from 'lucide-react';
 
 function stateTone(state?: string): { text: string; dot: string } {
   const s = (state || '').toLowerCase();
-  if (['idle', 'ready', 'standby', 'homing'].includes(s)) {
+  // 'enabled'/'disabled' are what arm_manual_node actually publishes.
+  if (s === 'disabled') {
+    return { text: 'text-amber-400', dot: 'bg-amber-500' };
+  }
+  if (['idle', 'ready', 'standby', 'homing', 'enabled'].includes(s)) {
     return { text: 'text-emerald-400', dot: 'bg-emerald-500' };
   }
   if (['moving', 'executing', 'active', 'busy', 'working'].includes(s)) {
@@ -25,10 +29,16 @@ function fmtJoint(value: number | undefined): string {
   return `${Math.round(value)}°`;
 }
 
+/** End-effector coordinates are metres, not angles. */
+function fmtMeters(value: number | undefined): string {
+  if (typeof value !== 'number' || !isFinite(value)) return '--';
+  return `${value.toFixed(3)}m`;
+}
+
 export const ArmStatusCard: React.FC = () => {
   const { isConnected } = useRos();
   const armStatus = useArmStatus();
-  const { joints: localJoints, homeArm } = useArmControl();
+  const { joints: localJoints, currentPose, isSynced, homeArm } = useArmControl();
 
   const state = armStatus?.state || armStatus?.status || (isConnected ? 'IDLE' : '--');
   const tone = stateTone(state);
@@ -49,7 +59,9 @@ export const ArmStatusCard: React.FC = () => {
     : [localJoints.base, localJoints.shoulder, localJoints.elbow, localJoints.wrist];
 
   const [base, shoulder, elbow, wrist] = displayJoints.map((v) => Number(v));
-  const eef = armStatus?.end_effector;
+  // Fall back to the pose derived from live joint feedback; the node's status
+  // topic carries only a state word, no end-effector position.
+  const eef = armStatus?.end_effector ?? currentPose;
   const gripper = typeof armStatus?.gripper === 'string' ? armStatus.gripper : armStatus?.gripper?.state;
 
   return (
@@ -59,10 +71,26 @@ export const ArmStatusCard: React.FC = () => {
           <Cpu className="w-4 h-4 text-blue-400" />
           <span>Arm Status</span>
         </div>
-        <span className={`flex items-center gap-1.5 font-mono font-bold uppercase text-[11px] ${tone.text}`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${tone.dot}`} />
-          {state}
-        </span>
+        <div className="flex items-center gap-2">
+          {isConnected && (
+            <span
+              className={`font-mono text-[10px] uppercase ${
+                isSynced ? 'text-emerald-400' : 'text-gray-500'
+              }`}
+              title={
+                isSynced
+                  ? 'Joint values are live from /arm/joint_angles'
+                  : 'No joint feedback received yet — showing last commanded values'
+              }
+            >
+              {isSynced ? 'live' : 'no feed'}
+            </span>
+          )}
+          <span className={`flex items-center gap-1.5 font-mono font-bold uppercase text-[11px] ${tone.text}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${tone.dot}`} />
+            {state}
+          </span>
+        </div>
       </div>
 
       {!isConnected ? (
@@ -91,7 +119,7 @@ export const ArmStatusCard: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <span className="text-gray-400">End-Effector</span>
                   <span className="font-mono text-gray-200">
-                    ({fmtJoint(eef.x)} , {fmtJoint(eef.y)} , {fmtJoint(eef.z)})
+                    ({fmtMeters(eef.x)} , {fmtMeters(eef.y)} , {fmtMeters(eef.z)})
                   </span>
                 </div>
               )}
