@@ -8,9 +8,9 @@ export const CartesianControl: React.FC = () => {
   const { currentPose, sendPoseGoal } = useArmControl();
   // Targets are entered in centimetres; /arm/pose_goal takes metres, so the
   // conversion happens once at the point of publishing.
-  const [targetX, setTargetX] = useState<number>(25);
+  const [targetX, setTargetX] = useState<number>(-20);
   const [targetY, setTargetY] = useState<number>(0);
-  const [targetZ, setTargetZ] = useState<number>(20);
+  const [targetZ, setTargetZ] = useState<number>(35);
 
   const handleSendGoal = (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,7 +95,7 @@ export const CartesianControl: React.FC = () => {
       </div>
 
       <p className="text-[11px] text-gray-500 mt-4">
-        Coordinates are relative to the arm base. Reachable range is approx 15-40cm forward envelope.
+        Coordinates are relative to the arm base. Forward reach is negative X in this frame; the arm currently reaches roughly X -30..-5cm at Z 30..40cm.
       </p>
     </div>
   );
