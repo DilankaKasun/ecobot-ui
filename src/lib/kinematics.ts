@@ -21,11 +21,10 @@ export const ARM_PARAMS = {
   // lower link sits 38 deg above the floor with 67 deg at the elbow and 116
   // deg at the wrist.
   JOINTS: [
-    { name: 'base', label: 'Base (Yaw)', min: 0, max: 220, home: 95, offset: 95, direction: 1 },
+    { name: 'base', label: 'Base (Yaw)', min: 0, max: 220, home: 95, offset: -85, direction: 1 },
     { name: 'shoulder', label: 'Shoulder', min: 0, max: 125, home: 30, offset: -98, direction: 1 },
     { name: 'elbow', label: 'Elbow', min: 0, max: 180, home: 180, offset: 67, direction: 1 },
-    // The wrist bends opposite to the model's sense, so its angle is negated.
-    { name: 'wrist', label: 'Wrist', min: 0, max: 180, home: 25, offset: -39, direction: -1 },
+    { name: 'wrist', label: 'Wrist', min: 0, max: 180, home: 25, offset: -39, direction: 1 },
   ],
 };
 

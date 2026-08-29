@@ -51,7 +51,7 @@ export const CartesianControl: React.FC = () => {
               <input
                 type="number"
                 step="1"
-                min="10"
+                min="-45"
                 max="45"
                 value={targetX}
                 onChange={(e) => setTargetX(parseFloat(e.target.value))}
