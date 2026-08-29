@@ -94,15 +94,6 @@ export function useArmControl() {
     [isConnected, publish]
   );
 
-  const sendVlaPrompt = useCallback(
-    (prompt: string) => {
-      if (!isConnected || !prompt.trim()) return;
-      publish(ROS_CONFIG.TOPICS.VLA_PROMPT, 'std_msgs/msg/String', {
-        data: prompt.trim(),
-      });
-    },
-    [isConnected, publish]
-  );
 
   const homeArm = useCallback(() => {
     publishJoints({ ...ARM_HOME });
@@ -114,7 +105,6 @@ export function useArmControl() {
     isSynced,
     setJointAngle,
     sendPoseGoal,
-    sendVlaPrompt,
     homeArm,
   };
 }

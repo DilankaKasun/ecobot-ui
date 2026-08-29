@@ -16,19 +16,19 @@ export const ARM_PARAMS = {
   // too, or the UI's "Home" button parks the arm somewhere that is not the
   // stow pose the node ramps to on startup.
   JOINTS: [
-    { name: 'base', label: 'Base (Yaw)', min: 0, max: 220, home: 107, offset: 95 },
-    { name: 'shoulder', label: 'Shoulder', min: 0, max: 125, home: 125, offset: 0 },
+    { name: 'base', label: 'Base (Yaw)', min: 0, max: 220, home: 95, offset: 95 },
+    { name: 'shoulder', label: 'Shoulder', min: 0, max: 125, home: 30, offset: 0 },
     { name: 'elbow', label: 'Elbow', min: 0, max: 180, home: 180, offset: 0 },
-    { name: 'wrist', label: 'Wrist', min: 0, max: 180, home: 45, offset: 0 },
+    { name: 'wrist', label: 'Wrist', min: 0, max: 180, home: 25, offset: 0 },
   ],
 };
 
 /** Home pose in the joint order the node expects: [base, shoulder, elbow, wrist]. */
 export const ARM_HOME = {
-  base: 107,
-  shoulder: 125,
+  base: 95,
+  shoulder: 30,
   elbow: 180,
-  wrist: 45,
+  wrist: 25,
 };
 
 export function forwardKinematics(
@@ -60,4 +60,61 @@ export function forwardKinematics(
   const y = r * Math.sin(th1);
 
   return { x: Number(x.toFixed(3)), y: Number(y.toFixed(3)), z: Number(z.toFixed(3)) };
+}
+
+export interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+}
+
+/**
+ * Every joint position along the arm, base first, end-effector last.
+ *
+ * Same convention as forwardKinematics — angles are servo-frame degrees and
+ * each link is measured from vertical — so the last entry always equals what
+ * forwardKinematics returns for the same input. Used to draw the arm rather
+ * than just its tip.
+ */
+export function forwardKinematicsChain(
+  theta1: number,
+  theta2: number,
+  theta3: number,
+  theta4: number
+): { points: Vec3[]; labels: string[] } {
+  const th1 = (theta1 * Math.PI) / 180;
+  const th2 = (theta2 * Math.PI) / 180;
+  const th23 = th2 + (theta3 * Math.PI) / 180;
+  const th234 = th23 + (theta4 * Math.PI) / 180;
+
+  const { L0, L1, L2, L3 } = ARM_PARAMS;
+
+  // Radial distance and height accumulated link by link, in the vertical
+  // plane the base yaw rotates.
+  const r1 = L1 * Math.sin(th2);
+  const r2 = r1 + L2 * Math.sin(th23);
+  const r3 = r2 + L3 * Math.sin(th234);
+
+  const z1 = L0 - L1 * Math.cos(th2);
+  const z2 = z1 - L2 * Math.cos(th23);
+  const z3 = z2 - L3 * Math.cos(th234);
+
+  const cos1 = Math.cos(th1);
+  const sin1 = Math.sin(th1);
+  const at = (r: number, z: number): Vec3 => ({
+    x: r * cos1,
+    y: r * sin1,
+    z,
+  });
+
+  return {
+    points: [
+      { x: 0, y: 0, z: 0 },   // floor mount
+      { x: 0, y: 0, z: L0 },  // shoulder pivot, atop the base column
+      at(r1, z1),             // elbow
+      at(r2, z2),             // wrist
+      at(r3, z3),             // end-effector
+    ],
+    labels: ['Base', 'Shoulder', 'Elbow', 'Wrist', 'Tip'],
+  };
 }

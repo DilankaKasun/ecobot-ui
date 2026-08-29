@@ -4,7 +4,7 @@ import React from 'react';
 import { JointSliders } from '@/components/arm/JointSliders';
 import { CartesianControl } from '@/components/arm/CartesianControl';
 import { ArmStatusCard } from '@/components/arm/ArmStatusCard';
-import { VlaCommander } from '@/components/arm/VlaCommander';
+import { ArmVisualizer3D } from '@/components/arm/ArmVisualizer3D';
 import { CameraFeed } from '@/components/video/CameraFeed';
 import { ROS_CONFIG } from '@/lib/ros-config';
 
@@ -14,7 +14,7 @@ export default function ArmStudioPage() {
       <div>
         <h2 className="text-lg md:text-xl font-bold text-white">Robotic Manipulator Studio</h2>
         <p className="text-xs text-gray-400 mt-1">
-          4-DOF Forward and Inverse Kinematics control, live end-effector wrist camera, and VLA Vision-Language prompts.
+          4-DOF forward and inverse kinematics control with a live pose view and end-effector wrist camera.
         </p>
       </div>
 
@@ -26,15 +26,15 @@ export default function ArmStudioPage() {
           <ArmStatusCard />
         </div>
 
-        {/* Right Column: Wrist Camera Feed & VLA Commander */}
+        {/* Right Column: Live 3D Pose & Wrist Camera */}
         <div className="space-y-6">
+          <ArmVisualizer3D />
           <CameraFeed
             title="Wrist Camera Live Stream (End-Effector)"
             port={ROS_CONFIG.ARM_CAMERA_PORT}
             endpoint="arm_camera.mjpg"
             rosTopic={ROS_CONFIG.TOPICS.CAMERA_ARM_COMPRESSED}
           />
-          <VlaCommander />
         </div>
       </div>
     </div>
