@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import {
-  Leaf, Play, Square, Loader2, Camera, FileText, AlertTriangle,
+  Leaf, Play, Square, Pause, SkipForward, Loader2, Camera, FileText,
+  AlertTriangle, CheckCircle2,
 } from 'lucide-react';
 import { usePlantMission } from '@/hooks/usePlantMission';
 
@@ -42,7 +43,8 @@ const ReportBody: React.FC<{ report: Record<string, unknown> }> = ({ report }) =
 
 export const PlantScanPanel: React.FC = () => {
   const {
-    status, captures, isConnected, scanHere, stop, setSamples, clearCaptures,
+    status, captures, isConnected, scanHere, start, stop, pause, resume, next,
+    setSamples, clearCaptures,
   } = usePlantMission();
   const [samples, setSamplesLocal] = useState(6);
 
@@ -53,6 +55,7 @@ export const PlantScanPanel: React.FC = () => {
   }, [status.samples]);
 
   const busy = BUSY.has(status.status);
+  const paused = status.status === 'PAUSED';
   const latestReport = status.results[status.results.length - 1];
 
   return (
@@ -104,12 +107,40 @@ export const PlantScanPanel: React.FC = () => {
         </button>
 
         <button
+          onClick={() => { clearCaptures(); start(samples); }}
+          disabled={!isConnected || busy}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-xs font-semibold transition-colors"
+        >
+          <Play className="w-3.5 h-3.5" />
+          Start mission
+        </button>
+
+        <button
+          onClick={paused ? resume : pause}
+          disabled={!isConnected || (!busy && !paused)}
+          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-600/80 hover:bg-amber-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-xs font-semibold transition-colors"
+        >
+          {paused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
+          {paused ? 'Resume' : 'Pause'}
+        </button>
+
+        <button
           onClick={stop}
-          disabled={!isConnected || !busy}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-card-border hover:bg-gray-700 disabled:opacity-40 text-gray-200 text-xs font-semibold transition-colors"
+          disabled={!isConnected || (!busy && !paused)}
+          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-rose-700/80 hover:bg-rose-600 disabled:bg-gray-700 disabled:text-gray-500 text-white text-xs font-semibold transition-colors"
         >
           <Square className="w-3.5 h-3.5" />
           Stop
+        </button>
+
+        <button
+          onClick={next}
+          disabled={!isConnected || status.status !== 'WAITING'}
+          title="Move on to the next waypoint"
+          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-card-border hover:bg-gray-700 disabled:opacity-40 text-gray-200 text-xs font-semibold transition-colors"
+        >
+          <SkipForward className="w-3.5 h-3.5" />
+          Next
         </button>
 
         {!isConnected && (

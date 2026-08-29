@@ -163,6 +163,9 @@ export function usePlantMission() {
     start: (samples?: number) =>
       send({ action: 'start', ...(samples ? { samples } : {}) }),
     stop: () => send({ action: 'stop' }),
+    pause: () => send({ action: 'pause' }),
+    resume: () => send({ action: 'resume' }),
+    next: () => send({ action: 'next' }),
     setSamples: (samples: number) => send({ action: 'set_samples', samples }),
     clearCaptures,
   };
