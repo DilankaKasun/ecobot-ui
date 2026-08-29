@@ -1,0 +1,55 @@
+
+> ecobot-dashboard-nextjs@1.0.0 dev /home/ecobot/ecobot-ui
+> next dev -H 0.0.0.0 -p 3001
+
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3001
+  - Network:      http://0.0.0.0:3001
+  - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 15.9s
+ ○ Compiling /arm ...
+ ✓ Compiled /arm in 36.7s (868 modules)
+ GET /arm 200 in 41799ms
+ ✓ Compiled in 5.5s (390 modules)
+ GET /arm 200 in 774ms
+ ○ Compiling /api/livekit-token ...
+ ✓ Compiled /api/livekit-token in 9.2s (665 modules)
+ GET /api/livekit-token?room=ecobot-control&identity=operator-433sxgnz 200 in 10906ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 5.4s (1044 modules)
+ GET /:/localhost:8085/arm_camera.mjpg?t=0 404 in 9063ms
+ ○ Compiling /api/segment ...
+ ✓ Compiled /api/segment in 6.9s (806 modules)
+Segmentation error: SyntaxError: Unexpected end of JSON input
+    at JSON.parse (<anonymous>)
+    at parseJSONFromBytes (node:internal/deps/undici/undici:5880:19)
+    at successSteps (node:internal/deps/undici/undici:5861:27)
+    at consumeBody (node:internal/deps/undici/undici:5867:9)
+    at NextRequest.json (node:internal/deps/undici/undici:5807:18)
+    at POST (webpack-internal:///(rsc)/./src/app/api/segment/route.ts:11:43)
+    at /home/ecobot/ecobot-ui/node_modules/.pnpm/next@14.2.35_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:57234
+    at /home/ecobot/ecobot-ui/node_modules/.pnpm/next@14.2.35_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/server/lib/trace/tracer.js:140:36
+    at NoopContextManager.with (/home/ecobot/ecobot-ui/node_modules/.pnpm/next@14.2.35_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/compiled/@opentelemetry/api/index.js:1:7062)
+    at ContextAPI.with (/home/ecobot/ecobot-ui/node_modules/.pnpm/next@14.2.35_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/compiled/@opentelemetry/api/index.js:1:518)
+    at NoopTracer.startActiveSpan (/home/ecobot/ecobot-ui/node_modules/.pnpm/next@14.2.35_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/compiled/@opentelemetry/api/index.js:1:18093)
+    at ProxyTracer.startActiveSpan (/home/ecobot/ecobot-ui/node_modules/.pnpm/next@14.2.35_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/compiled/@opentelemetry/api/index.js:1:18854)
+    at /home/ecobot/ecobot-ui/node_modules/.pnpm/next@14.2.35_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/server/lib/trace/tracer.js:122:103
+    at NoopContextManager.with (/home/ecobot/ecobot-ui/node_modules/.pnpm/next@14.2.35_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/compiled/@opentelemetry/api/index.js:1:7062)
+    at ContextAPI.with (/home/ecobot/ecobot-ui/node_modules/.pnpm/next@14.2.35_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/compiled/@opentelemetry/api/index.js:1:518)
+    at NextTracerImpl.trace (/home/ecobot/ecobot-ui/node_modules/.pnpm/next@14.2.35_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/server/lib/trace/tracer.js:122:28)
+    at /home/ecobot/ecobot-ui/node_modules/.pnpm/next@14.2.35_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:48896
+    at AsyncLocalStorage.run (node:async_hooks:346:14)
+    at Object.wrap (/home/ecobot/ecobot-ui/node_modules/.pnpm/next@14.2.35_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:40958)
+    at /home/ecobot/ecobot-ui/node_modules/.pnpm/next@14.2.35_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:47472
+    at AsyncLocalStorage.run (node:async_hooks:346:14)
+    at Object.wrap (/home/ecobot/ecobot-ui/node_modules/.pnpm/next@14.2.35_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:38293)
+    at /home/ecobot/ecobot-ui/node_modules/.pnpm/next@14.2.35_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:47434
+    at AsyncLocalStorage.run (node:async_hooks:346:14)
+    at eT.execute (/home/ecobot/ecobot-ui/node_modules/.pnpm/next@14.2.35_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:46881)
+    at eT.handle (/home/ecobot/ecobot-ui/node_modules/.pnpm/next@14.2.35_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:58771)
+    at doRender (/home/ecobot/ecobot-ui/node_modules/.pnpm/next@14.2.35_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/server/base-server.js:1366:60)
+    at cacheEntry.responseCache.get.routeKind (/home/ecobot/ecobot-ui/node_modules/.pnpm/next@14.2.35_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/server/base-server.js:1588:34)
+    at ResponseCache.get (/home/ecobot/ecobot-ui/node_modules/.pnpm/next@14.2.35_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/server/response-cache/index.js:49:26)
+    at DevServer.renderToResponseWithComponentsImpl (/home/ecobot/ecobot-ui/node_modules/.pnpm/next@14.2.35_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/server/base-server.js:1496:53)

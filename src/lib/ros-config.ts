@@ -21,6 +21,7 @@ export const ROS_CONFIG = {
     ARM_JOINTS_CMD: '/arm/joint_commands',
     ARM_JOINT_ANGLES: '/arm/joint_angles',
     ARM_POSE_GOAL: '/arm/pose_goal',
+    ARM_POSE_GOAL_RESULT: '/arm/pose_goal_result',
     ARM_POSE: '/arm/pose',
     ARM_STATUS: '/arm/status',
     VLA_PROMPT: '/arm/vla_prompt',

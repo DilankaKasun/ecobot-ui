@@ -4,10 +4,12 @@
  */
 
 export const ARM_PARAMS = {
-  L0: 0.110, // Base height (m)
-  L1: 0.150, // Shoulder to elbow (m)
-  L2: 0.130, // Elbow to wrist (m)
-  L3: 0.140, // Wrist to end-effector (m)
+  // Measured on the arm. L0 is ground to the shoulder pivot, so z is
+  // measured from the floor, not from the top of the base.
+  L0: 0.320, // ground to shoulder pivot (m)
+  L1: 0.165, // shoulder link (m)
+  L2: 0.140, // elbow link (m)
+  L3: 0.090, // wrist / last link (m)
 
   // Limits and home angles mirror ecobot_arm_control/servo_config.py. The node
   // clamps every command to min/max, so a slider that ranges wider than the
@@ -150,4 +152,33 @@ export function forwardKinematicsChain(
     ],
     labels: ['Base', 'Shoulder', 'Elbow', 'Wrist', 'Tip'],
   };
+}
+
+/**
+ * Whether the tip could physically reach (x, y, z), in metres, ignoring joint
+ * limits. Mirrors the node's own check so the dashboard can warn before
+ * sending rather than waiting for a rejection.
+ *
+ * Distinguishes "the arm is not long enough" from "the arm is long enough but
+ * a joint cannot bend that way" — only the first is decidable from geometry.
+ */
+export function reachCheck(
+  x: number,
+  y: number,
+  z: number
+): { withinSpan: boolean; distance: number; span: number; reason?: string } {
+  const { L0, L1, L2, L3 } = ARM_PARAMS;
+  const span = L1 + L2 + L3;
+  const distance = Math.hypot(x, y, z - L0);
+  if (distance > span) {
+    return {
+      withinSpan: false,
+      distance,
+      span,
+      reason:
+        `${(distance * 100).toFixed(1)}cm from the shoulder pivot, but the ` +
+        `arm only spans ${(span * 100).toFixed(1)}cm`,
+    };
+  }
+  return { withinSpan: true, distance, span };
 }
