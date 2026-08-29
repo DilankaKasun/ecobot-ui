@@ -1,16 +1,33 @@
 'use client';
 
 import React from 'react';
-import { MissionManager } from '@/components/mission/MissionManager';
-import { DualCameraView } from '@/components/video/DualCameraView';
+import { PlantScanPanel } from '@/components/mission/PlantScanPanel';
+import { CameraFeed } from '@/components/video/CameraFeed';
+import { ROS_CONFIG } from '@/lib/ros-config';
 
 export default function MissionPage() {
   return (
     <div className="space-y-6">
-      <MissionManager />
-      <div className="pt-2">
-        <h3 className="text-sm font-semibold text-gray-300 mb-3">Live Vision Monitoring</h3>
-        <DualCameraView />
+      <div>
+        <h2 className="text-lg md:text-xl font-bold text-white">Plant Scanning Mission</h2>
+        <p className="text-xs text-gray-400 mt-1">
+          Approach a plant, sweep the wrist camera across it, and have Gemini
+          write up what it sees.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <PlantScanPanel />
+        <div className="space-y-6">
+          {/* The wrist camera is what the scan actually photographs. */}
+          <CameraFeed
+            title="Wrist Camera (scanning view)"
+            port={ROS_CONFIG.ARM_CAMERA_PORT}
+            endpoint="arm_camera.mjpg"
+            rosTopic={ROS_CONFIG.TOPICS.CAMERA_ARM_COMPRESSED}
+            livekitTrackName="arm"
+          />
+        </div>
       </div>
     </div>
   );
