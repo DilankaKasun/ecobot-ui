@@ -333,7 +333,7 @@ export const ArmVisualizer3D: React.FC = () => {
               {c.label}
             </div>
             <div className={`font-mono text-xs font-bold ${c.cls}`}>
-              {c.value.toFixed(3)}m
+              {(c.value * 100).toFixed(1)}cm
             </div>
           </div>
         ))}
@@ -341,8 +341,8 @@ export const ArmVisualizer3D: React.FC = () => {
 
       <p className="text-[10px] text-gray-600 mt-2 text-center">
         Drag to orbit · scroll to zoom · dashed legs trace X → Y → Z from base
-        to tip · link lengths L0–L3 {ARM_PARAMS.L0}/{ARM_PARAMS.L1}/
-        {ARM_PARAMS.L2}/{ARM_PARAMS.L3} m
+        to tip · link lengths L0–L3 {ARM_PARAMS.L0 * 100}/{ARM_PARAMS.L1 * 100}/
+        {ARM_PARAMS.L2 * 100}/{ARM_PARAMS.L3 * 100} cm
       </p>
     </div>
   );

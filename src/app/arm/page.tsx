@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import { Camera } from 'lucide-react';
 import { JointSliders } from '@/components/arm/JointSliders';
 import { CartesianControl } from '@/components/arm/CartesianControl';
-import { ArmStatusCard } from '@/components/arm/ArmStatusCard';
 import { ArmVisualizer3D } from '@/components/arm/ArmVisualizer3D';
 import { CameraFeed } from '@/components/video/CameraFeed';
 import { FloatingPanel } from '@/components/layout/FloatingPanel';
@@ -38,7 +37,6 @@ export default function ArmStudioPage() {
         <div className="space-y-6">
           <JointSliders />
           <CartesianControl />
-          <ArmStatusCard />
         </div>
 
         {/* Right Column: Live 3D Pose */}

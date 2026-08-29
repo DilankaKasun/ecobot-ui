@@ -6,13 +6,15 @@ import { Crosshair, Send } from 'lucide-react';
 
 export const CartesianControl: React.FC = () => {
   const { currentPose, sendPoseGoal } = useArmControl();
-  const [targetX, setTargetX] = useState<number>(0.25);
-  const [targetY, setTargetY] = useState<number>(0.0);
-  const [targetZ, setTargetZ] = useState<number>(0.2);
+  // Targets are entered in centimetres; /arm/pose_goal takes metres, so the
+  // conversion happens once at the point of publishing.
+  const [targetX, setTargetX] = useState<number>(25);
+  const [targetY, setTargetY] = useState<number>(0);
+  const [targetZ, setTargetZ] = useState<number>(20);
 
   const handleSendGoal = (e: React.FormEvent) => {
     e.preventDefault();
-    sendPoseGoal({ x: targetX, y: targetY, z: targetZ });
+    sendPoseGoal({ x: targetX / 100, y: targetY / 100, z: targetZ / 100 });
   };
 
   return (
@@ -29,15 +31,15 @@ export const CartesianControl: React.FC = () => {
           <div className="grid grid-cols-3 gap-2 font-mono text-sm font-bold text-center">
             <div className="bg-card-border/30 p-1.5 rounded">
               <span className="text-gray-400 text-xs font-normal">X: </span>
-              <span className="text-blue-400">{currentPose.x.toFixed(3)}m</span>
+              <span className="text-blue-400">{(currentPose.x * 100).toFixed(1)}cm</span>
             </div>
             <div className="bg-card-border/30 p-1.5 rounded">
               <span className="text-gray-400 text-xs font-normal">Y: </span>
-              <span className="text-purple-400">{currentPose.y.toFixed(3)}m</span>
+              <span className="text-purple-400">{(currentPose.y * 100).toFixed(1)}cm</span>
             </div>
             <div className="bg-card-border/30 p-1.5 rounded">
               <span className="text-gray-400 text-xs font-normal">Z: </span>
-              <span className="text-emerald-400">{currentPose.z.toFixed(3)}m</span>
+              <span className="text-emerald-400">{(currentPose.z * 100).toFixed(1)}cm</span>
             </div>
           </div>
         </div>
@@ -45,36 +47,36 @@ export const CartesianControl: React.FC = () => {
         <form onSubmit={handleSendGoal} className="space-y-3">
           <div className="grid grid-cols-3 gap-2 text-xs">
             <div>
-              <label className="block text-gray-400 mb-1">Target X (Forward)</label>
+              <label className="block text-gray-400 mb-1">Target X (Forward, cm)</label>
               <input
                 type="number"
-                step="0.01"
-                min="0.10"
-                max="0.45"
+                step="1"
+                min="10"
+                max="45"
                 value={targetX}
                 onChange={(e) => setTargetX(parseFloat(e.target.value))}
                 className="w-full bg-background border border-card-border rounded-lg px-2.5 py-1.5 text-white font-mono"
               />
             </div>
             <div>
-              <label className="block text-gray-400 mb-1">Target Y (Lateral)</label>
+              <label className="block text-gray-400 mb-1">Target Y (Lateral, cm)</label>
               <input
                 type="number"
-                step="0.01"
-                min="-0.30"
-                max="0.30"
+                step="1"
+                min="-30"
+                max="30"
                 value={targetY}
                 onChange={(e) => setTargetY(parseFloat(e.target.value))}
                 className="w-full bg-background border border-card-border rounded-lg px-2.5 py-1.5 text-white font-mono"
               />
             </div>
             <div>
-              <label className="block text-gray-400 mb-1">Target Z (Height)</label>
+              <label className="block text-gray-400 mb-1">Target Z (Height, cm)</label>
               <input
                 type="number"
-                step="0.01"
-                min="0.05"
-                max="0.40"
+                step="1"
+                min="5"
+                max="40"
                 value={targetZ}
                 onChange={(e) => setTargetZ(parseFloat(e.target.value))}
                 className="w-full bg-background border border-card-border rounded-lg px-2.5 py-1.5 text-white font-mono"
@@ -93,7 +95,7 @@ export const CartesianControl: React.FC = () => {
       </div>
 
       <p className="text-[11px] text-gray-500 mt-4">
-        Coordinates are relative to the arm base. Reachable range is approx 15–40cm forward envelope.
+        Coordinates are relative to the arm base. Reachable range is approx 15-40cm forward envelope.
       </p>
     </div>
   );
