@@ -301,7 +301,27 @@ export const ArmVisualizer3D: React.FC = () => {
         className="w-full h-[300px] rounded-lg overflow-hidden border border-card-border bg-background cursor-grab active:cursor-grabbing"
       />
 
+      {/* Joint angles, moved here from the Arm Status card so the numbers sit
+          beside the pose they describe. */}
       <div className="grid grid-cols-4 gap-2 mt-3 text-center">
+        {[
+          { label: 'Base', value: joints.base, cls: 'text-primary' },
+          { label: 'Shoulder', value: joints.shoulder, cls: 'text-sky-400' },
+          { label: 'Elbow', value: joints.elbow, cls: 'text-purple-300' },
+          { label: 'Wrist', value: joints.wrist, cls: 'text-rose-300' },
+        ].map((j) => (
+          <div key={j.label} className="bg-black/30 rounded-lg py-1.5">
+            <div className="text-[10px] text-gray-500 uppercase tracking-wide">
+              {j.label}
+            </div>
+            <div className={`font-mono text-xs font-bold ${j.cls}`}>
+              {Math.round(j.value)}°
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-4 gap-2 mt-2 text-center">
         {[
           { label: 'X', value: currentPose.x, cls: 'text-blue-400' },
           { label: 'Y', value: currentPose.y, cls: 'text-purple-400' },

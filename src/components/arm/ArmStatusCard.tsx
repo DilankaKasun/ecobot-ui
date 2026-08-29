@@ -24,11 +24,6 @@ function stateTone(state?: string): { text: string; dot: string } {
   return { text: 'text-gray-400', dot: 'bg-gray-500' };
 }
 
-function fmtJoint(value: number | undefined): string {
-  if (typeof value !== 'number' || !isFinite(value)) return '--';
-  return `${Math.round(value)}°`;
-}
-
 /** End-effector coordinates are metres, not angles. */
 function fmtMeters(value: number | undefined): string {
   if (typeof value !== 'number' || !isFinite(value)) return '--';
@@ -38,27 +33,11 @@ function fmtMeters(value: number | undefined): string {
 export const ArmStatusCard: React.FC = () => {
   const { isConnected } = useRos();
   const armStatus = useArmStatus();
-  const { joints: localJoints, currentPose, isSynced, homeArm } = useArmControl();
+  const { currentPose, isSynced, homeArm } = useArmControl();
 
   const state = armStatus?.state || armStatus?.status || (isConnected ? 'IDLE' : '--');
   const tone = stateTone(state);
 
-  const jointsFromStatus = Array.isArray(armStatus?.joints)
-    ? armStatus?.joints
-    : armStatus?.joints && typeof armStatus.joints === 'object'
-      ? [
-          (armStatus.joints as any).base,
-          (armStatus.joints as any).shoulder,
-          (armStatus.joints as any).elbow,
-          (armStatus.joints as any).wrist,
-        ]
-      : null;
-
-  const displayJoints = jointsFromStatus?.some((v) => typeof v === 'number')
-    ? jointsFromStatus
-    : [localJoints.base, localJoints.shoulder, localJoints.elbow, localJoints.wrist];
-
-  const [base, shoulder, elbow, wrist] = displayJoints.map((v) => Number(v));
   // Fall back to the pose derived from live joint feedback; the node's status
   // topic carries only a state word, no end-effector position.
   const eef = armStatus?.end_effector ?? currentPose;
@@ -99,20 +78,6 @@ export const ArmStatusCard: React.FC = () => {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-2 text-center">
-            {[
-              { label: 'Base', value: fmtJoint(base) },
-              { label: 'Shoulder', value: fmtJoint(shoulder) },
-              { label: 'Elbow', value: fmtJoint(elbow) },
-              { label: 'Wrist', value: fmtJoint(wrist) },
-            ].map((j) => (
-              <div key={j.label} className="bg-black/30 rounded-lg py-2 px-1">
-                <div className="text-[10px] text-gray-500 uppercase tracking-wide">{j.label}</div>
-                <div className="font-mono text-sm font-bold text-gray-100">{j.value}</div>
-              </div>
-            ))}
-          </div>
-
           {(eef || gripper) && (
             <div className="mt-3 space-y-1.5 text-[11px]">
               {eef && (

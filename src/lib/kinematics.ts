@@ -15,13 +15,40 @@ export const ARM_PARAMS = {
   // narrower makes part of the joint unreachable from the UI. Home must match
   // too, or the UI's "Home" button parks the arm somewhere that is not the
   // stow pose the node ramps to on startup.
+  // `offset` mirrors angle_offset in servo_config.py and is SUBTRACTED from a
+  // servo angle to reach the kinematic frame, exactly as the node's to_ik()
+  // does. Calibrated against the physical arm at the home pose, where the
+  // lower link sits 38 deg above the floor with 67 deg at the elbow and 116
+  // deg at the wrist.
   JOINTS: [
-    { name: 'base', label: 'Base (Yaw)', min: 0, max: 220, home: 95, offset: 95 },
-    { name: 'shoulder', label: 'Shoulder', min: 0, max: 125, home: 30, offset: 0 },
-    { name: 'elbow', label: 'Elbow', min: 0, max: 180, home: 180, offset: 0 },
-    { name: 'wrist', label: 'Wrist', min: 0, max: 180, home: 25, offset: 0 },
+    { name: 'base', label: 'Base (Yaw)', min: 0, max: 220, home: 95, offset: -85 },
+    { name: 'shoulder', label: 'Shoulder', min: 0, max: 125, home: 30, offset: -98 },
+    { name: 'elbow', label: 'Elbow', min: 0, max: 180, home: 180, offset: 67 },
+    { name: 'wrist', label: 'Wrist', min: 0, max: 180, home: 25, offset: -39 },
   ],
 };
+
+/**
+ * Servo angles -> kinematic frame, matching servo_config.to_ik().
+ *
+ * The solver works in a frame where each joint's zero is a defined pose, but
+ * the servos have their own zeros. Skipping this shift makes the computed
+ * pose disagree with the robot's own /arm/pose.
+ */
+export function toIk(
+  base: number,
+  shoulder: number,
+  elbow: number,
+  wrist: number
+): [number, number, number, number] {
+  const o = ARM_PARAMS.JOINTS;
+  return [
+    base - o[0].offset,
+    shoulder - o[1].offset,
+    elbow - o[2].offset,
+    wrist - o[3].offset,
+  ];
+}
 
 /** Home pose in the joint order the node expects: [base, shoulder, elbow, wrist]. */
 export const ARM_HOME = {
@@ -37,10 +64,12 @@ export function forwardKinematics(
   theta3: number,
   theta4: number
 ): { x: number; y: number; z: number } {
-  const th1 = (theta1 * Math.PI) / 180;
-  const th2 = (theta2 * Math.PI) / 180;
-  const th3 = (theta3 * Math.PI) / 180;
-  const th4 = (theta4 * Math.PI) / 180;
+  // Inputs are servo angles; shift into the kinematic frame first.
+  const [i1, i2, i3, i4] = toIk(theta1, theta2, theta3, theta4);
+  const th1 = (i1 * Math.PI) / 180;
+  const th2 = (i2 * Math.PI) / 180;
+  const th3 = (i3 * Math.PI) / 180;
+  const th4 = (i4 * Math.PI) / 180;
 
   const th23 = th2 + th3;
   const th234 = th23 + th4;
@@ -82,10 +111,12 @@ export function forwardKinematicsChain(
   theta3: number,
   theta4: number
 ): { points: Vec3[]; labels: string[] } {
-  const th1 = (theta1 * Math.PI) / 180;
-  const th2 = (theta2 * Math.PI) / 180;
-  const th23 = th2 + (theta3 * Math.PI) / 180;
-  const th234 = th23 + (theta4 * Math.PI) / 180;
+  // Inputs are servo angles; shift into the kinematic frame first.
+  const [i1, i2, i3, i4] = toIk(theta1, theta2, theta3, theta4);
+  const th1 = (i1 * Math.PI) / 180;
+  const th2 = (i2 * Math.PI) / 180;
+  const th23 = th2 + (i3 * Math.PI) / 180;
+  const th234 = th23 + (i4 * Math.PI) / 180;
 
   const { L0, L1, L2, L3 } = ARM_PARAMS;
 
