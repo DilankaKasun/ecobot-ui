@@ -5,13 +5,14 @@
 
 export const ARM_PARAMS = {
   // Measured on the arm, in metres. L0 is ground to the base servo tip. The
-  // shoulder link does not start there — a fixed bracket carries it OFF_R out
-  // and OFF_Z up, and that offset turns with the base yaw.
+  // shoulder link does not start there — a fixed bracket carries it OFF_R
+  // radially and OFF_Z up, and that offset turns with the base yaw. OFF_R is
+  // negative: the bracket leans back over the base, not out ahead of it.
   L0: 0.300, // ground to base servo tip
   L1: 0.165, // shoulder link
   L2: 0.135, // elbow link
   L3: 0.050, // wrist / last link
-  OFF_R: 0.040, // base tip -> shoulder pivot, radial
+  OFF_R: -0.040, // base tip -> shoulder pivot, radial (leans back)
   OFF_Z: 0.080, // base tip -> shoulder pivot, vertical
 
   // Limits and home angles mirror ecobot_arm_control/servo_config.py. The node
@@ -178,10 +179,11 @@ export function reachCheck(
 ): { withinSpan: boolean; distance: number; span: number; reason?: string } {
   const { L0, L1, L2, L3, OFF_R, OFF_Z } = ARM_PARAMS;
   const span = L1 + L2 + L3;
-  // Measured from the shoulder pivot, which sits out on the bracket. The
-  // radial offset turns with the base, so the nearest the pivot can be to a
-  // given point is that offset subtracted from its radius.
-  const radial = Math.max(0, Math.hypot(x, y) - OFF_R);
+  // Measured from the shoulder pivot, which rides round on the bracket. The
+  // nearest it can get to a target at radius R is R minus the bracket's
+  // radial reach, whichever way the bracket leans — the solver tries the
+  // base both ways round.
+  const radial = Math.max(0, Math.hypot(x, y) - Math.abs(OFF_R));
   const distance = Math.hypot(radial, z - (L0 + OFF_Z));
   if (distance > span) {
     return {
