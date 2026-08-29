@@ -4,12 +4,15 @@
  */
 
 export const ARM_PARAMS = {
-  // Measured on the arm. L0 is ground to the shoulder pivot, so z is
-  // measured from the floor, not from the top of the base.
-  L0: 0.320, // ground to shoulder pivot (m)
-  L1: 0.165, // shoulder link (m)
-  L2: 0.140, // elbow link (m)
-  L3: 0.090, // wrist / last link (m)
+  // Measured on the arm, in metres. L0 is ground to the base servo tip. The
+  // shoulder link does not start there — a fixed bracket carries it OFF_R out
+  // and OFF_Z up, and that offset turns with the base yaw.
+  L0: 0.300, // ground to base servo tip
+  L1: 0.165, // shoulder link
+  L2: 0.135, // elbow link
+  L3: 0.050, // wrist / last link
+  OFF_R: 0.040, // base tip -> shoulder pivot, radial
+  OFF_Z: 0.080, // base tip -> shoulder pivot, vertical
 
   // Limits and home angles mirror ecobot_arm_control/servo_config.py. The node
   // clamps every command to min/max, so a slider that ranges wider than the
@@ -17,18 +20,18 @@ export const ARM_PARAMS = {
   // narrower makes part of the joint unreachable from the UI. Home must match
   // too, or the UI's "Home" button parks the arm somewhere that is not the
   // stow pose the node ramps to on startup.
-  // `offset` mirrors angle_offset in servo_config.py and is SUBTRACTED from a
-  // servo angle to reach the kinematic frame, exactly as the node's to_ik()
+  // `offset` mirrors angle_offset in servo_config.py and is applied with
+  // `direction` to reach the kinematic frame, exactly as the node's to_ik()
   // does. Calibrated against the physical arm at the home pose, where the
-  // lower link sits 38 deg above the floor with 67 deg at the elbow and 116
+  // lower link sits 83 deg above the floor with 70 deg at the elbow and 113
   // deg at the wrist.
   JOINTS: [
     { name: 'base', label: 'Base (Yaw)', min: 0, max: 220, home: 95, offset: -85, direction: 1 },
-    { name: 'shoulder', label: 'Shoulder', min: 0, max: 125, home: 30, offset: -98, direction: 1 },
-    { name: 'elbow', label: 'Elbow', min: 0, max: 180, home: 180, offset: 67, direction: 1 },
-    // direction -1 reverses the wrist's sense; offset 89 keeps the measured
-    // 116 deg interior angle at home despite that flip.
-    { name: 'wrist', label: 'Wrist', min: 0, max: 180, home: 25, offset: 89, direction: -1 },
+    { name: 'shoulder', label: 'Shoulder', min: 0, max: 125, home: 30, offset: -143, direction: 1 },
+    { name: 'elbow', label: 'Elbow', min: 0, max: 180, home: 180, offset: 70, direction: 1 },
+    // direction -1 reverses the wrist's sense; offset 92 keeps the measured
+    // 113 deg interior angle at home despite that flip.
+    { name: 'wrist', label: 'Wrist', min: 0, max: 180, home: 25, offset: 92, direction: -1 },
   ],
 };
 
@@ -79,12 +82,13 @@ export function forwardKinematics(
   const th234 = th23 + th4;
 
   const r =
+    ARM_PARAMS.OFF_R +
     ARM_PARAMS.L1 * Math.sin(th2) +
     ARM_PARAMS.L2 * Math.sin(th23) +
     ARM_PARAMS.L3 * Math.sin(th234);
 
   const z =
-    ARM_PARAMS.L0 -
+    ARM_PARAMS.L0 + ARM_PARAMS.OFF_Z -
     (ARM_PARAMS.L1 * Math.cos(th2) +
       ARM_PARAMS.L2 * Math.cos(th23) +
       ARM_PARAMS.L3 * Math.cos(th234));
@@ -122,15 +126,19 @@ export function forwardKinematicsChain(
   const th23 = th2 + (i3 * Math.PI) / 180;
   const th234 = th23 + (i4 * Math.PI) / 180;
 
-  const { L0, L1, L2, L3 } = ARM_PARAMS;
+  const { L0, L1, L2, L3, OFF_R, OFF_Z } = ARM_PARAMS;
 
   // Radial distance and height accumulated link by link, in the vertical
-  // plane the base yaw rotates.
-  const r1 = L1 * Math.sin(th2);
+  // plane the base yaw rotates, starting from the shoulder pivot rather than
+  // the base axis.
+  const pr = OFF_R;
+  const pz = L0 + OFF_Z;
+
+  const r1 = pr + L1 * Math.sin(th2);
   const r2 = r1 + L2 * Math.sin(th23);
   const r3 = r2 + L3 * Math.sin(th234);
 
-  const z1 = L0 - L1 * Math.cos(th2);
+  const z1 = pz - L1 * Math.cos(th2);
   const z2 = z1 - L2 * Math.cos(th23);
   const z3 = z2 - L3 * Math.cos(th234);
 
@@ -145,12 +153,13 @@ export function forwardKinematicsChain(
   return {
     points: [
       { x: 0, y: 0, z: 0 },   // floor mount
-      { x: 0, y: 0, z: L0 },  // shoulder pivot, atop the base column
+      { x: 0, y: 0, z: L0 },  // base servo tip
+      at(pr, pz),             // shoulder pivot, out on the bracket
       at(r1, z1),             // elbow
       at(r2, z2),             // wrist
       at(r3, z3),             // end-effector
     ],
-    labels: ['Base', 'Shoulder', 'Elbow', 'Wrist', 'Tip'],
+    labels: ['Base', 'Servo tip', 'Shoulder', 'Elbow', 'Wrist', 'Tip'],
   };
 }
 
@@ -167,9 +176,13 @@ export function reachCheck(
   y: number,
   z: number
 ): { withinSpan: boolean; distance: number; span: number; reason?: string } {
-  const { L0, L1, L2, L3 } = ARM_PARAMS;
+  const { L0, L1, L2, L3, OFF_R, OFF_Z } = ARM_PARAMS;
   const span = L1 + L2 + L3;
-  const distance = Math.hypot(x, y, z - L0);
+  // Measured from the shoulder pivot, which sits out on the bracket. The
+  // radial offset turns with the base, so the nearest the pivot can be to a
+  // given point is that offset subtracted from its radius.
+  const radial = Math.max(0, Math.hypot(x, y) - OFF_R);
+  const distance = Math.hypot(radial, z - (L0 + OFF_Z));
   if (distance > span) {
     return {
       withinSpan: false,
