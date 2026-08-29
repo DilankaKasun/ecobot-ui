@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { useRos } from './useRos';
+import { useRobotLink } from './useRobotLink';
 import { ROS_CONFIG } from '@/lib/ros-config';
 import { ArmJoints, ArmPoseGoal } from '@/types/ros';
 import { forwardKinematics, ARM_HOME } from '@/lib/kinematics';
@@ -17,7 +17,7 @@ import { forwardKinematics, ARM_HOME } from '@/lib/kinematics';
 const ECHO_SUPPRESS_MS = 800;
 
 export function useArmControl() {
-  const { publish, subscribe, isConnected } = useRos();
+  const { publish, subscribe, isConnected } = useRobotLink();
 
   const [joints, setJoints] = useState<ArmJoints>({ ...ARM_HOME });
   const [currentPose, setCurrentPose] = useState<{ x: number; y: number; z: number }>(() =>

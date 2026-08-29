@@ -237,7 +237,7 @@ export const RosProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setIsConnecting(false);
       const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
       if (isHttps && resolved.url.startsWith('ws://')) {
-        setConnectionError('Blocked by browser: Insecure WebSocket (ws://) cannot be initiated on an HTTPS page (Mixed Content). Use a wss:// tunnel or run dashboard over HTTP.');
+        setConnectionError('Blocked by browser: an HTTPS page cannot open an insecure WebSocket (ws://). Control falls back to the LiveKit data channel automatically — check the LiveKit room is connected. To use rosbridge directly, open the dashboard over HTTP on the LAN.');
       } else {
         setConnectionError(`Could not connect to ${resolved.url}`);
       }
