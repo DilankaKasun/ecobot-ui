@@ -8,7 +8,9 @@ import {
 import { usePlantMission } from '@/hooks/usePlantMission';
 
 /** Statuses the node reports while a scan is in flight. */
-const BUSY = new Set(['NAVIGATING', 'SCANNING', 'ANALYSING', 'ANALYZING']);
+const BUSY = new Set([
+  'NAVIGATING', 'SCANNING', 'ANALYSING', 'ANALYZING', 'SEARCHING',
+]);
 
 function tone(status: string) {
   if (status === 'COMPLETE') return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30';
