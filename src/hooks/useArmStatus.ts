@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRos } from './useRos';
+import { useRobotLink } from './useRobotLink';
 import { ROS_CONFIG } from '@/lib/ros-config';
 import { ArmStatus } from '@/types/ros';
 
 export function useArmStatus() {
-  const { subscribe, isConnected } = useRos();
+  const { subscribe, isConnected } = useRobotLink();
   const [armStatus, setArmStatus] = useState<ArmStatus | null>(null);
 
   useEffect(() => {

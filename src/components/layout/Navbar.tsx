@@ -3,12 +3,14 @@
 import React, { useState } from 'react';
 import { useRos } from '@/hooks/useRos';
 import { useLiveKit } from '@/hooks/useLiveKit';
-import { ShieldCheck, RefreshCw, WifiOff, Wifi, Radio } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { ShieldCheck, RefreshCw, WifiOff, Wifi, Radio, LogOut } from 'lucide-react';
 import Link from 'next/link';
 
 export const Navbar: React.FC = () => {
   const { isConnected, operatorMode, setOperatorMode, robotHost, setRobotHost } = useRos();
   const { isConnected: isLiveKitConnected, isConnecting: isLiveKitConnecting, roomName } = useLiveKit();
+  const { label: userLabel, logout } = useAuth();
   const [isEditingIp, setIsEditingIp] = useState(false);
   const [tempIp, setTempIp] = useState(robotHost);
 
@@ -94,6 +96,21 @@ export const Navbar: React.FC = () => {
           ) : (
             <WifiOff className="w-4 h-4 text-danger opacity-80" />
           )}
+        </div>
+
+        {/* Signed-in operator + sign out */}
+        <div className="flex items-center gap-2 border-l border-white/10 pl-4">
+          <span className="hidden md:inline text-[11px] font-mono text-gray-400 max-w-[120px] truncate" title={userLabel ?? ''}>
+            {userLabel}
+          </span>
+          <button
+            onClick={logout}
+            title="Sign out"
+            aria-label="Sign out"
+            className="p-1.5 rounded-md text-gray-500 hover:text-danger hover:bg-danger/10 transition-colors"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </header>

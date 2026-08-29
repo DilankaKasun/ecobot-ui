@@ -273,7 +273,7 @@ export default function SettingsPage() {
               type="text"
               value={hostInput}
               onChange={(e) => setHostInput(e.target.value)}
-              placeholder="e.g. localhost, 192.168.8.105, or wss://<tunnel-id>.trycloudflare.com"
+              placeholder="e.g. localhost or 192.168.8.105 (LAN). Remote control uses LiveKit — no host needed."
               className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-blue-500"
             />
             {resolvedRosUrl && (
@@ -308,11 +308,11 @@ export default function SettingsPage() {
               type="text"
               value={cameraSourceInput}
               onChange={(e) => setCameraSourceInput(e.target.value)}
-              placeholder="https://<tunnel-id>.trycloudflare.com/stream.mjpg"
+              placeholder="http://192.168.8.105:8084/arm_camera.mjpg"
               className="w-full bg-blue-900/20 border border-blue-500/30 rounded-lg px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-blue-400 placeholder:text-gray-500"
             />
             <p className="text-[11px] font-mono text-gray-400 mt-1">
-              If running a remote tunnel, paste the camera stream URL here to feed the local YOLO detection backend.
+              Optional override: paste an MJPEG stream URL to feed the local YOLO detection backend.
             </p>
           </div>
         </div>
