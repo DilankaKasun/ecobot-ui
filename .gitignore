@@ -33,3 +33,6 @@ next-env.d.ts
 .vercel
 
 backend
+
+# local dev server log
+dev.log
