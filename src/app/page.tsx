@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRos } from '@/hooks/useRos';
 import { useLiveKit } from '@/hooks/useLiveKit';
 import { LiveKitVideoPlayer } from '@/components/video/LiveKitVideoPlayer';
@@ -8,6 +8,8 @@ import { useOdometry } from '@/hooks/useOdometry';
 import { resolveStreamUrl } from '@/components/video/CameraFeed';
 import { DualCameraView } from '@/components/video/DualCameraView';
 import { BotanicalDescription } from '@/components/video/BotanicalDescription';
+import { PlantDetection } from '@/lib/plant-analysis';
+import { Rect } from '@/lib/hud-layout';
 import { Map2DCanvas } from '@/components/map/Map2DCanvas';
 import { VirtualJoystick } from '@/components/teleop/VirtualJoystick';
 import { KeyboardTeleop } from '@/components/teleop/KeyboardTeleop';
@@ -61,7 +63,60 @@ export default function DashboardPage() {
   const [refreshKey, setRefreshKey] = useState<number>(0);
   const [bgStreamError, setBgStreamError] = useState<boolean>(false);
   const [pipStreamError, setPipStreamError] = useState<boolean>(false);
-  const [detectedPlants, setDetectedPlants] = useState<any[]>([]);
+  const [detectedPlants, setDetectedPlants] = useState<PlantDetection[]>([]);
+
+  // Panels layered over the camera feed — the AR overlays route around them.
+  const logPanelRef = useRef<HTMLDivElement | null>(null);
+  const camPanelRef = useRef<HTMLDivElement | null>(null);
+  const mapPanelRef = useRef<HTMLDivElement | null>(null);
+  const [hudAvoidRects, setHudAvoidRects] = useState<Rect[]>([]);
+
+  useEffect(() => {
+    const sameRects = (a: Rect[], b: Rect[]) => {
+      if (a.length !== b.length) return false;
+      for (let i = 0; i < a.length; i++) {
+        if (
+          Math.round(a[i].left) !== Math.round(b[i].left) ||
+          Math.round(a[i].top) !== Math.round(b[i].top) ||
+          Math.round(a[i].width) !== Math.round(b[i].width) ||
+          Math.round(a[i].height) !== Math.round(b[i].height)
+        ) {
+          return false;
+        }
+      }
+      return true;
+    };
+
+    const panels = [logPanelRef.current, camPanelRef.current, mapPanelRef.current];
+
+    const measure = () => {
+      const next: Rect[] = [];
+      panels.forEach((el) => {
+        if (!el) return;
+        const r = el.getBoundingClientRect();
+        if (r.width > 4 && r.height > 4) {
+          next.push({ left: r.left, top: r.top, width: r.width, height: r.height });
+        }
+      });
+      setHudAvoidRects((prev) => (sameRects(prev, next) ? prev : next));
+    };
+
+    measure();
+    window.addEventListener('resize', measure);
+
+    let observer: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      observer = new ResizeObserver(measure);
+      panels.forEach((el) => {
+        if (el && observer) observer.observe(el);
+      });
+    }
+
+    return () => {
+      window.removeEventListener('resize', measure);
+      if (observer) observer.disconnect();
+    };
+  }, [detectedPlants.length, viewMode, collapsed.data, collapsed.cam, collapsed.map]);
 
   // ROS Topic image data fallback
   const [mainRosImage, setMainRosImage] = useState<string | null>(null);
@@ -155,6 +210,7 @@ export default function DashboardPage() {
                 showStats={true}
                 trackName={isSwapped ? 'wrist_camera' : 'realsense_camera'}
                 onPlantDetected={setDetectedPlants}
+                avoidRects={hudAvoidRects}
               />
             </div>
           ) : bgRosImage ? (
@@ -207,10 +263,16 @@ export default function DashboardPage() {
             
             {/* Data Overview Panel */}
             {detectedPlants.length > 0 && (
-              <div className="flex flex-col transition-all duration-300 animate-[fade-in-down_0.4s_ease-out_forwards] p-4 mt-16 bg-black/10 rounded-xl">
+              <div
+                ref={logPanelRef}
+                className="flex flex-col transition-all duration-300 animate-[fade-in-down_0.4s_ease-out_forwards] p-4 mt-16 bg-black/10 rounded-xl"
+              >
                 <div className="flex items-center justify-between text-green-400 cursor-pointer select-none mb-2" onClick={() => toggleCollapse('data')}>
-                  <h2 className="text-base font-bold tracking-widest uppercase">
+                  <h2 className="text-base font-bold tracking-widest uppercase flex items-center gap-2">
                     Botanical Log
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded border border-green-400/40 text-green-400/80">
+                      {detectedPlants.length} {detectedPlants.length === 1 ? 'SPECIMEN' : 'SPECIMENS'}
+                    </span>
                   </h2>
                   <div className="flex items-center gap-2">
                     <Info className="w-4 h-4 text-gray-500" />
@@ -218,8 +280,16 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                <div className={`flex flex-col gap-3 transition-all duration-300 overflow-hidden ${collapsed.data ? 'max-h-0 opacity-0 mt-0' : 'max-h-[500px] opacity-100 mt-4'}`}>
-                  <BotanicalDescription label={detectedPlants[0].label} />
+                {/* One readout per detected plant, matching the AR overlays on the feed */}
+                <div className={`flex flex-col gap-3 transition-all duration-300 ${collapsed.data ? 'max-h-0 opacity-0 mt-0 overflow-hidden' : 'max-h-[60vh] opacity-100 mt-4 overflow-y-auto pr-1'}`}>
+                  {detectedPlants.map((plant, idx) => (
+                    <div
+                      key={plant.id}
+                      className={idx > 0 ? 'border-t border-green-400/20 pt-3' : undefined}
+                    >
+                      <BotanicalDescription plant={plant} index={idx} />
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
@@ -252,7 +322,7 @@ export default function DashboardPage() {
 
           {/* RIGHT COLUMN: Wrist Cam & Active Drawer Overlay */}
           <div className="lg:col-span-3 flex flex-col justify-end gap-4 z-10 h-full overflow-hidden pointer-events-auto">
-            <div className="bg-card/20 backdrop-blur-md border border-white/5 rounded-xl p-4 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] flex flex-col transition-all duration-300">
+            <div ref={camPanelRef} className="bg-card/20 backdrop-blur-md border border-white/5 rounded-xl p-4 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] flex flex-col transition-all duration-300">
               <div className="flex items-center justify-between text-xs cursor-pointer select-none" onClick={() => toggleCollapse('cam')}>
                 <span className="text-gray-400 font-mono">{pipLabel}</span>
                 <div className="flex items-center gap-2">
@@ -339,7 +409,7 @@ export default function DashboardPage() {
             </div>
 
             {/* 2D Navigation Map Panel */}
-            <div className={`bg-card/20 backdrop-blur-md border border-white/5 rounded-xl p-3 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] flex flex-col transition-all duration-300 ${!collapsed.map ? 'flex-1 min-h-0 overflow-y-auto' : ''}`}>
+            <div ref={mapPanelRef} className={`bg-card/20 backdrop-blur-md border border-white/5 rounded-xl p-3 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] flex flex-col transition-all duration-300 ${!collapsed.map ? 'flex-1 min-h-0 overflow-y-auto' : ''}`}>
               <div className="flex items-center justify-between text-gray-300 cursor-pointer select-none mb-1" onClick={() => toggleCollapse('map')}>
                 <h2 className="text-sm font-bold tracking-wide flex items-center gap-2">
                   <svg className="w-4 h-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
