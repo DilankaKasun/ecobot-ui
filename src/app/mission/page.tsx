@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { PlantScanPanel } from '@/components/mission/PlantScanPanel';
+import { NodeActivityPanel } from '@/components/mission/NodeActivityPanel';
 import { CameraFeed } from '@/components/video/CameraFeed';
 import { ROS_CONFIG } from '@/lib/ros-config';
 
@@ -15,6 +16,10 @@ export default function MissionPage() {
           write up what it sees.
         </p>
       </div>
+
+      {/* What each node is doing right now. Full width and above the
+          controls: during a run this is the thing you watch. */}
+      <NodeActivityPanel />
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <PlantScanPanel />
