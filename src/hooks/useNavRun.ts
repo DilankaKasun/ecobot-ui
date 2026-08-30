@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRobotLink } from './useRobotLink';
+import { useRos } from './useRos';
 import { ROS_CONFIG } from '@/lib/ros-config';
 
 /**
@@ -115,6 +116,12 @@ class RateCounter {
 
 export function useNavRun() {
   const { subscribe, publish, isConnected, transport } = useRobotLink();
+  // Over rosbridge, View Only mode drops every publish on the floor and
+  // only logs a warning — so the buttons look alive and do nothing. The
+  // console needs to know, to say so instead of pretending.
+  const { operatorMode } = useRos();
+  const viewOnly = transport === 'rosbridge' && operatorMode === 'observer';
+  const canControl = isConnected && !viewOnly;
 
   const [status, setStatus] = useState<NavStatus>(EMPTY_STATUS);
   const [scanner, setScanner] = useState<ScannerStatus | null>(null);
@@ -242,10 +249,17 @@ export function useNavRun() {
 
   const send = useCallback((payload: Record<string, unknown>) => {
     if (!isConnected) return;
+    if (viewOnly) {
+      // Never fail silently: the caller disables the buttons on
+      // canControl, so reaching here means something slipped through.
+      // eslint-disable-next-line no-console
+      console.warn('[useNavRun] not sent — dashboard is in View Only mode');
+      return;
+    }
     publish(ROS_CONFIG.TOPICS.PLANT_SCAN_CMD, 'std_msgs/msg/String', {
       data: JSON.stringify(payload),
     });
-  }, [isConnected, publish]);
+  }, [isConnected, viewOnly, publish]);
 
   /** Seconds left before the current state hits its deadline. */
   const timeLeft = status.deadline_s == null
@@ -258,7 +272,7 @@ export function useNavRun() {
 
   return {
     status, scanner, detections, suppressed, vels, odom,
-    isConnected, transport, timeLeft, nodeAlive,
+    isConnected, transport, timeLeft, nodeAlive, viewOnly, canControl,
     start: (samples?: number) =>
       send({ action: 'start', ...(samples ? { samples } : {}) }),
     stop: () => send({ action: 'stop' }),

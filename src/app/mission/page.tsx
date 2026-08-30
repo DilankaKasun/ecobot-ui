@@ -3,7 +3,6 @@
 import React from 'react';
 import { RunConsole } from '@/components/mission/RunConsole';
 import { ScanPanel } from '@/components/mission/ScanPanel';
-import { NodeActivityPanel } from '@/components/mission/NodeActivityPanel';
 import { CameraFeed } from '@/components/video/CameraFeed';
 import { ROS_CONFIG } from '@/lib/ros-config';
 
@@ -37,8 +36,6 @@ export default function MissionPage() {
         </div>
         <ScanPanel />
       </div>
-
-      <NodeActivityPanel />
     </div>
   );
 }

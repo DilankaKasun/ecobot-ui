@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Play, Square, SkipForward, Crosshair, Map, Camera, ShieldOff, Shield,
-  AlertTriangle, CircleDot,
+  AlertTriangle, CircleDot, Eye,
 } from 'lucide-react';
 import {
   useNavRun, RUN_PIPELINE, RunState, PlantCandidate, Detection, Vel,
@@ -71,7 +71,8 @@ const CAND_TONE: Record<string, string> = {
 export const RunConsole: React.FC = () => {
   const {
     status, detections, suppressed, vels, odom, isConnected, transport,
-    timeLeft, nodeAlive, start, stop, next, scanHere, setSamples,
+    timeLeft, nodeAlive, viewOnly, canControl,
+    start, stop, next, scanHere, setSamples,
   } = useNavRun();
   const [samples, setSamplesLocal] = useState(6);
 
@@ -87,10 +88,6 @@ export const RunConsole: React.FC = () => {
   const plantDets = detections.filter((d) => isPlantClass(d.class_name));
   const nearest = plantDets.reduce<Detection | null>(
     (a, d) => (a == null || (d.distance ?? 99) < (a.distance ?? 99) ? d : a), null);
-
-  useEffect(() => {
-    if (!running) return;
-  }, [running]);
 
   return (
     <div className="bg-card border border-card-border rounded-xl p-4 shadow-lg space-y-3">
@@ -115,6 +112,12 @@ export const RunConsole: React.FC = () => {
 
         <div className="flex-1" />
 
+        {viewOnly && (
+          <span className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-300 font-mono text-[11px] font-bold">
+            <Eye className="w-3.5 h-3.5" />
+            VIEW ONLY
+          </span>
+        )}
         {!nodeAlive && (
           <span className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-rose-500/40 bg-rose-500/10 text-rose-300 font-mono text-[11px] font-bold">
             <AlertTriangle className="w-3.5 h-3.5" />
@@ -185,21 +188,21 @@ export const RunConsole: React.FC = () => {
         </div>
         <button
           onClick={() => start(samples)}
-          disabled={!isConnected || running}
+          disabled={!canControl || running}
           className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-xs font-semibold"
         >
           <Play className="w-3.5 h-3.5" /> Start run
         </button>
         <button
           onClick={stop}
-          disabled={!isConnected || !running}
+          disabled={!canControl || !running}
           className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-rose-700/80 hover:bg-rose-600 disabled:bg-gray-700 disabled:text-gray-500 text-white text-xs font-semibold"
         >
           <Square className="w-3.5 h-3.5" /> Stop
         </button>
         <button
           onClick={next}
-          disabled={!isConnected || !running}
+          disabled={!canControl || !running}
           title="Give up on this plant and pick the next"
           className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-card-border hover:bg-gray-700 disabled:opacity-40 text-gray-200 text-xs font-semibold"
         >
@@ -207,7 +210,7 @@ export const RunConsole: React.FC = () => {
         </button>
         <button
           onClick={() => scanHere(samples)}
-          disabled={!isConnected || running}
+          disabled={!canControl || running}
           title="Scan where the robot already stands — no driving"
           className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-700/80 hover:bg-emerald-600 disabled:bg-gray-700 disabled:text-gray-500 text-white text-xs font-semibold"
         >
@@ -215,6 +218,12 @@ export const RunConsole: React.FC = () => {
         </button>
         {!isConnected && (
           <span className="text-[11px] text-amber-300">No link to the robot</span>
+        )}
+        {viewOnly && (
+          <span className="flex items-center gap-1.5 text-[11px] text-amber-300">
+            <Eye className="w-3.5 h-3.5" />
+            View Only — switch to Operator in the top bar to drive
+          </span>
         )}
       </div>
 
