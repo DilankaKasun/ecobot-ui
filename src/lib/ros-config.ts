@@ -12,6 +12,12 @@ export const ROS_CONFIG = {
   TOPICS: {
     CMD_VEL: '/cmd_vel',
     NAV_CMD_VEL: '/nav_cmd_vel',
+    // The camera driver's own velocity topic. obstacle_avoidance.py picks
+    // between this and NAV_CMD_VEL by which one is still arriving, so both
+    // are worth watching during a handover.
+    GOTO_CMD_VEL: '/goto_cmd_vel',
+    // plant_run_node: the state machine, who has the wheels, and why.
+    NAV_STATUS: '/ecobot/nav_status',
     ODOM: '/odom',
     RUN_MODE: '/run_mode',
     DETECTIONS: '/ecobot/detections',
@@ -25,6 +31,9 @@ export const ROS_CONFIG = {
     ARM_POSE: '/arm/pose',
     ARM_STATUS: '/arm/status',
     VLA_PROMPT: '/arm/vla_prompt',
+    SCANNER_STATUS: '/arm/scanner_status',
+    MISSION_SUPPRESS_AVOIDANCE: '/ecobot/mission_suppress_avoidance',
+    GOTO_SUPPRESS_AVOIDANCE: '/ecobot/goto_suppress_avoidance',
     PLANT_SCAN_CMD: '/ecobot/plant_scan_cmd',
     PLANT_SCAN_STATUS: '/ecobot/plant_scan_status',
     SCAN_CAPTURE: '/ecobot/scan_capture',

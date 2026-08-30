@@ -1,33 +1,40 @@
 'use client';
 
 import React from 'react';
-import { PlantScanPanel } from '@/components/mission/PlantScanPanel';
+import { RunConsole } from '@/components/mission/RunConsole';
+import { ScanPanel } from '@/components/mission/ScanPanel';
 import { CameraFeed } from '@/components/video/CameraFeed';
 import { ROS_CONFIG } from '@/lib/ros-config';
 
 export default function MissionPage() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-lg md:text-xl font-bold text-white">Plant Scanning Mission</h2>
-        <p className="text-xs text-gray-400 mt-1">
-          Approach a plant, sweep the wrist camera across it, and have Gemini
-          write up what it sees.
-        </p>
-      </div>
+    <div className="space-y-4">
+      <h2 className="text-lg font-bold text-white">Plant Run</h2>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <PlantScanPanel />
-        <div className="space-y-6">
-          {/* The wrist camera is what the scan actually photographs. */}
+      {/* The run's own state machine, who has the wheels, and every number
+          worth watching while it drives. This is the page. */}
+      <RunConsole />
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <div className="space-y-4">
+          {/* What the robot is steering by: the forward camera and its
+              detection boxes. */}
           <CameraFeed
-            title="Wrist Camera (scanning view)"
+            title="Forward camera (what the driver sees)"
+            port={ROS_CONFIG.OBSTACLE_STREAM_PORT}
+            endpoint="obstacle.mjpg"
+            rosTopic={ROS_CONFIG.TOPICS.CAMERA_COLOR_COMPRESSED}
+            livekitTrackName="detection"
+          />
+          <CameraFeed
+            title="Wrist camera (what the scan photographs)"
             port={ROS_CONFIG.ARM_CAMERA_PORT}
             endpoint="arm_camera.mjpg"
             rosTopic={ROS_CONFIG.TOPICS.CAMERA_ARM_COMPRESSED}
             livekitTrackName="arm"
           />
         </div>
+        <ScanPanel />
       </div>
     </div>
   );
