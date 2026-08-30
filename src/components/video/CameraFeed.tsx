@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRos, isTunnelHost, isLocalOrLanHost } from '@/hooks/useRos';
 import { useLiveKit } from '@/hooks/useLiveKit';
 import { LiveKitVideoPlayer } from './LiveKitVideoPlayer';
 import { ROS_CONFIG } from '@/lib/ros-config';
-import { Camera, RefreshCw, AlertCircle, ShieldAlert, ExternalLink, Wifi, Eye, Radio } from 'lucide-react';
+import { Camera, RefreshCw, AlertCircle, ShieldAlert, ExternalLink, Wifi, Eye, Radio, Maximize2 } from 'lucide-react';
 import { RemoteTrack } from 'livekit-client';
 
 export interface StreamOption {
@@ -97,6 +97,7 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
   const [streamMode, setStreamMode] = useState<'http' | 'ros_topic' | 'livekit'>('http');
   const [rosImageData, setRosImageData] = useState<string | null>(null);
   const [showOverlays, setShowOverlays] = useState<boolean>(true);
+  const feedRef = useRef<HTMLDivElement>(null);
 
   const activePort = streamOptions ? streamOptions[selectedOptionIndex].port : initialPort;
   const activeEndpoint = streamOptions ? streamOptions[selectedOptionIndex].endpoint : initialEndpoint;
@@ -155,6 +156,17 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
   const handleRefresh = () => {
     setStreamError(false);
     setRefreshKey((k) => k + 1);
+  };
+
+  // Fullscreening the feed is also what switches AI plant scanning on for it.
+  const toggleFullscreen = () => {
+    const el = feedRef.current;
+    if (!el) return;
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    } else {
+      el.requestFullscreen().catch(() => {});
+    }
   };
 
   const handleSelectOption = (idx: number) => {
@@ -251,11 +263,20 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
           >
             <RefreshCw className="w-3.5 h-3.5" />
           </button>
+
+          <button
+            onClick={toggleFullscreen}
+            className="p-1 rounded text-gray-400 hover:text-white hover:bg-card-border transition-colors"
+            title="Fullscreen (starts AI plant scanning on this feed)"
+          >
+            <Maximize2 className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
 
       <div
-        className={`relative bg-black flex items-center justify-center overflow-hidden ${
+        ref={feedRef}
+        className={`relative bg-black flex items-center justify-center overflow-hidden [&:fullscreen]:aspect-auto [&:fullscreen]:w-screen [&:fullscreen]:h-screen ${
           aspectRatio === 'video' ? 'aspect-video' : 'aspect-square'
         }`}
       >

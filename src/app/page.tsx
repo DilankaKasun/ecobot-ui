@@ -209,6 +209,7 @@ export default function DashboardPage() {
                 className="w-full h-full"
                 showStats={true}
                 trackName={isSwapped ? 'wrist_camera' : 'realsense_camera'}
+                enableAiVision
                 onPlantDetected={setDetectedPlants}
                 avoidRects={hudAvoidRects}
               />
