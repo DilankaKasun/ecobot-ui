@@ -25,6 +25,7 @@ const COL = {
   link2: 0x38bdf8,
   link3: 0xd28cff,
   joint: 0xf1f5f9,
+  bracket: 0x475569,
   tip: 0xff7e79,
   x: 0x60a5fa,
   y: 0xd28cff,
@@ -69,7 +70,8 @@ export const ArmVisualizer3D: React.FC = () => {
       0.01,
       50
     );
-    const HOME_CAM = new THREE.Vector3(0.40, 0.30, 0.40);
+    // Framed for the full arm: a 30cm base plus a 35cm span reaches ~73cm.
+    const HOME_CAM = new THREE.Vector3(0.85, 0.62, 0.85);
     camera.position.copy(HOME_CAM);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
@@ -80,8 +82,8 @@ export const ArmVisualizer3D: React.FC = () => {
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
-    controls.target.set(0, 0.18, 0);
-    controls.minDistance = 0.25;
+    controls.target.set(0, 0.38, 0);
+    controls.minDistance = 0.35;
     controls.maxDistance = 2.5;
     // Stop the camera going under the floor, where the grid hides the arm.
     controls.maxPolarAngle = Math.PI / 2 - 0.02;
@@ -94,11 +96,11 @@ export const ArmVisualizer3D: React.FC = () => {
     rim.position.set(-0.6, 0.3, -0.5);
     scene.add(rim);
 
-    const grid = new THREE.GridHelper(0.8, 16, 0x1f2937, 0x151d2b);
+    const grid = new THREE.GridHelper(1.4, 14, 0x1f2937, 0x151d2b);
     scene.add(grid);
 
     // World axes at the base: +X forward, +Y left, +Z up in robot terms.
-    const axisLen = 0.16;
+    const axisLen = 0.22;
     const mkAxis = (dir: THREE.Vector3, color: number) => {
       const g = new THREE.BufferGeometry().setFromPoints([
         new THREE.Vector3(0, 0, 0),
@@ -110,9 +112,10 @@ export const ArmVisualizer3D: React.FC = () => {
     scene.add(mkAxis(new THREE.Vector3(0, 0, -1), COL.y));
     scene.add(mkAxis(new THREE.Vector3(0, 1, 0), COL.z));
 
-    // Four link segments; each is a unit-length cylinder rescaled per frame.
-    const linkColors = [COL.base, COL.link1, COL.link2, COL.link3];
-    const linkRadii = [0.022, 0.017, 0.015, 0.012];
+    // Five segments: the base column, the fixed bracket out to the shoulder
+    // pivot, then the three moving links.
+    const linkColors = [COL.base, COL.bracket, COL.link1, COL.link2, COL.link3];
+    const linkRadii = [0.022, 0.014, 0.017, 0.015, 0.012];
     const segments = linkColors.map((color, i) => {
       const geo = new THREE.CylinderGeometry(
         linkRadii[i], linkRadii[i], 1, 16
@@ -131,8 +134,8 @@ export const ArmVisualizer3D: React.FC = () => {
       return mesh;
     });
 
-    const jointMeshes = [0, 1, 2, 3, 4].map((i) => {
-      const isTip = i === 4;
+    const jointMeshes = [0, 1, 2, 3, 4, 5].map((i) => {
+      const isTip = i === 5;
       const mesh = new THREE.Mesh(
         new THREE.SphereGeometry(isTip ? 0.02 : 0.018, 20, 20),
         new THREE.MeshStandardMaterial({
@@ -205,7 +208,7 @@ export const ArmVisualizer3D: React.FC = () => {
       projX, projY, projZ, reach,
       resetView: () => {
         camera.position.copy(HOME_CAM);
-        controls.target.set(0, 0.18, 0);
+        controls.target.set(0, 0.38, 0);
         controls.update();
       },
     };
@@ -341,8 +344,9 @@ export const ArmVisualizer3D: React.FC = () => {
 
       <p className="text-[10px] text-gray-600 mt-2 text-center">
         Drag to orbit · scroll to zoom · dashed legs trace X → Y → Z from base
-        to tip · link lengths L0–L3 {ARM_PARAMS.L0 * 100}/{ARM_PARAMS.L1 * 100}/
-        {ARM_PARAMS.L2 * 100}/{ARM_PARAMS.L3 * 100} cm
+        to tip · base {ARM_PARAMS.L0 * 100}cm, bracket{' '}
+        {ARM_PARAMS.OFF_R * 100}/{ARM_PARAMS.OFF_Z * 100}cm, links{' '}
+        {ARM_PARAMS.L1 * 100}/{ARM_PARAMS.L2 * 100}/{ARM_PARAMS.L3 * 100}cm
       </p>
     </div>
   );
