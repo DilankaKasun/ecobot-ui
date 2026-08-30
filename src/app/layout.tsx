@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { RosProvider } from '@/hooks/useRos';
 import { LiveKitProvider } from '@/hooks/useLiveKit';
@@ -9,8 +9,18 @@ import { Sidebar } from '@/components/layout/Sidebar';
 import { MobileNav } from '@/components/layout/MobileNav';
 
 export const metadata: Metadata = {
-  title: 'EcoBot Next.js Dashboard',
-  description: 'Autonomous Mobile Manipulator Remote Control & AI Portal',
+  // Routes set their own title; each one lands in the template below.
+  title: {
+    default: 'EcoBot Terminal — Operator Dashboard',
+    template: '%s · EcoBot Terminal',
+  },
+  description:
+    'Remote operator dashboard for EcoBot, an autonomous mobile manipulator: live camera feeds, teleoperation, SLAM mapping, plant-scan missions and AI vision.',
+  applicationName: 'EcoBot Terminal',
+};
+
+export const viewport: Viewport = {
+  themeColor: '#090D14',
 };
 
 export default function RootLayout({
