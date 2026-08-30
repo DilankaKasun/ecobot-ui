@@ -1,9 +1,11 @@
 'use client';
 
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useMemo, useState } from 'react';
 import { RemoteTrack } from 'livekit-client';
 import { Maximize2, Radio, Volume2, VolumeX, ScanLine, Loader } from 'lucide-react';
 import { PlantDetailsHUD } from './PlantDetailsHUD';
+import { normalizePlantDetections, PlantDetection } from '@/lib/plant-analysis';
+import { layoutPlantHuds, Rect } from '@/lib/hud-layout';
 
 interface LiveKitVideoPlayerProps {
   track: RemoteTrack | null | undefined;
@@ -12,7 +14,12 @@ interface LiveKitVideoPlayerProps {
   showStats?: boolean;
   trackName?: string;
   enableAiVision?: boolean;
-  onPlantDetected?: (items: any[]) => void;
+  onPlantDetected?: (items: PlantDetection[]) => void;
+  /**
+   * Dashboard chrome sitting on top of the feed (sidebars, map panel), in
+   * viewport coordinates. HUD panels steer around these.
+   */
+  avoidRects?: Rect[];
 }
 
 export const LiveKitVideoPlayer: React.FC<LiveKitVideoPlayerProps> = ({
@@ -23,6 +30,7 @@ export const LiveKitVideoPlayer: React.FC<LiveKitVideoPlayerProps> = ({
   trackName,
   enableAiVision = true,
   onPlantDetected,
+  avoidRects,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -30,7 +38,65 @@ export const LiveKitVideoPlayer: React.FC<LiveKitVideoPlayerProps> = ({
   const [isMuted, setIsMuted] = useState(true);
   const [isSegmenting, setIsSegmenting] = useState(enableAiVision);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [detectedItems, setDetectedItems] = useState<any[]>([]);
+  const [detectedItems, setDetectedItems] = useState<PlantDetection[]>([]);
+  const [viewport, setViewport] = useState({ width: 0, height: 0, left: 0, top: 0 });
+
+  // The segmentation loop is set up once; read the latest callback through a ref.
+  const onPlantDetectedRef = useRef(onPlantDetected);
+  useEffect(() => {
+    onPlantDetectedRef.current = onPlantDetected;
+  }, [onPlantDetected]);
+
+  // Overlay geometry follows the rendered video box, so HUDs stay put on resize.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const measure = () => {
+      const rect = el.getBoundingClientRect();
+      setViewport({ width: el.clientWidth, height: el.clientHeight, left: rect.left, top: rect.top });
+    };
+    measure();
+
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', measure);
+      return () => window.removeEventListener('resize', measure);
+    }
+
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const placements = useMemo(() => {
+    if (viewport.width <= 0 || viewport.height <= 0) return [];
+
+    // The player's own chrome, plus any dashboard panels layered over the feed.
+    const obstacles: Rect[] = [
+      { left: 0, top: 0, width: 400, height: 34 }, // stat chips (top left)
+      { left: viewport.width - 150, top: 0, width: 150, height: 38 }, // quick controls (top right)
+      { left: viewport.width / 2 - 130, top: 12, width: 260, height: 36 }, // "analyzing" pill
+    ];
+
+    if (avoidRects) {
+      for (let i = 0; i < avoidRects.length; i++) {
+        const r = avoidRects[i];
+        obstacles.push({
+          left: r.left - viewport.left,
+          top: r.top - viewport.top,
+          width: r.width,
+          height: r.height,
+        });
+      }
+    }
+
+    return layoutPlantHuds(
+      detectedItems.map((item) => item.box_2d),
+      viewport.width,
+      viewport.height,
+      { obstacles }
+    );
+  }, [detectedItems, viewport, avoidRects]);
 
   useEffect(() => {
     const el = videoRef.current;
@@ -55,6 +121,8 @@ export const LiveKitVideoPlayer: React.FC<LiveKitVideoPlayerProps> = ({
   useEffect(() => {
     if (!isSegmenting || !videoRef.current || !canvasRef.current) {
       setDetectedItems([]);
+      // Clear the sidebar log too, so it never outlives the overlays.
+      onPlantDetectedRef.current?.([]);
       return;
     }
 
@@ -115,7 +183,7 @@ export const LiveKitVideoPlayer: React.FC<LiveKitVideoPlayerProps> = ({
 
       // Clear the old HUD and masks immediately before scanning the new frame!
       setDetectedItems([]);
-      onPlantDetected?.([]);
+      onPlantDetectedRef.current?.([]);
       if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       const imageBase64 = offscreen.toDataURL('image/jpeg', 0.8);
@@ -129,42 +197,15 @@ export const LiveKitVideoPlayer: React.FC<LiveKitVideoPlayerProps> = ({
           body: JSON.stringify({ imageBase64 }),
         });
         const data = await res.json();
-        
-        if (data.items) {
-          setDetectedItems(data.items);
-          onPlantDetected?.(data.items);
-        } else {
-          setDetectedItems([]);
-          onPlantDetected?.([]);
-        }
 
-        if (data.items && ctx) {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          
-          data.items.forEach((item: any) => {
-            const { mask } = item;
-            
-            // Draw mask only (HUD handles labels and bounding boxes)
-            // The user requested to hide the polygon mask since the bounding box + reticle looks cleaner
-            /*
-            if (mask && mask.length > 0) {
-              ctx.beginPath();
-              mask.forEach(([x, y]: [number, number], index: number) => {
-                const cx = (x / 1000) * canvas.width;
-                const cy = (y / 1000) * canvas.height;
-                if (index === 0) ctx.moveTo(cx, cy);
-                else ctx.lineTo(cx, cy);
-              });
-              ctx.closePath();
-              ctx.fillStyle = 'rgba(45, 212, 191, 0.4)';
-              ctx.fill();
-              ctx.strokeStyle = 'rgba(45, 212, 191, 1)';
-              ctx.lineWidth = 3;
-              ctx.stroke();
-            }
-            */
-          });
-        }
+        // Gemini returns the label AND the per-plant analysis the HUD renders;
+        // normalize fills in anything the model left out.
+        const plants = normalizePlantDetections(data.items);
+        setDetectedItems(plants);
+        onPlantDetectedRef.current?.(plants);
+
+        // Polygon masks stay hidden — the bracket box + reticle reads cleaner.
+        if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
       } catch (err) {
         console.error('Segmentation API error:', err);
       } finally {
@@ -211,18 +252,13 @@ export const LiveKitVideoPlayer: React.FC<LiveKitVideoPlayerProps> = ({
         className="absolute inset-0 w-full h-full pointer-events-none z-10 mix-blend-screen"
       />
 
-      {/* DOM overlays for HUDs */}
-      {isSegmenting && canvasRef.current && detectedItems.map((item, idx) => (
-        item.box_2d ? (
-          <PlantDetailsHUD 
-            key={idx}
-            box_2d={item.box_2d}
-            label={item.label}
-            canvasWidth={canvasRef.current!.width}
-            canvasHeight={canvasRef.current!.height}
-          />
-        ) : null
-      ))}
+      {/* DOM overlays for HUDs — one per detected plant, placed to avoid collisions */}
+      {isSegmenting &&
+        detectedItems.map((item, idx) =>
+          placements[idx] ? (
+            <PlantDetailsHUD key={item.id} plant={item} placement={placements[idx]} index={idx} />
+          ) : null
+        )}
 
       {/* Analyzing Loader Overlay (Only when actively waiting for API) */}
       {isAnalyzing && enableAiVision && (
