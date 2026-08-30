@@ -13,6 +13,11 @@ interface LiveKitVideoPlayerProps {
   objectFit?: 'contain' | 'cover' | 'fill';
   showStats?: boolean;
   trackName?: string;
+  /**
+   * Allow the Gemini plant-scanning loop on this feed. Off by default — it is
+   * a paid API call every few seconds, so only the main HUD feed opts in.
+   * Any feed also scans while it is fullscreen, however this is set.
+   */
   enableAiVision?: boolean;
   onPlantDetected?: (items: PlantDetection[]) => void;
   /**
@@ -28,7 +33,7 @@ export const LiveKitVideoPlayer: React.FC<LiveKitVideoPlayerProps> = ({
   objectFit = 'cover',
   showStats = false,
   trackName,
-  enableAiVision = true,
+  enableAiVision = false,
   onPlantDetected,
   avoidRects,
 }) => {
@@ -36,10 +41,38 @@ export const LiveKitVideoPlayer: React.FC<LiveKitVideoPlayerProps> = ({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isMuted, setIsMuted] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [isSegmenting, setIsSegmenting] = useState(enableAiVision);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [detectedItems, setDetectedItems] = useState<PlantDetection[]>([]);
   const [viewport, setViewport] = useState({ width: 0, height: 0, left: 0, top: 0 });
+
+  // Track whether this feed is the one on screen fullscreen.
+  useEffect(() => {
+    const readFullscreenState = () => {
+      const active: Element | null =
+        document.fullscreenElement || (document as any).webkitFullscreenElement || null;
+      const el = containerRef.current;
+      // Counts when this player, or anything wrapping it, went fullscreen.
+      setIsFullscreen(!!active && !!el && (active === el || active.contains(el)));
+    };
+
+    readFullscreenState();
+    document.addEventListener('fullscreenchange', readFullscreenState);
+    document.addEventListener('webkitfullscreenchange', readFullscreenState);
+    return () => {
+      document.removeEventListener('fullscreenchange', readFullscreenState);
+      document.removeEventListener('webkitfullscreenchange', readFullscreenState);
+    };
+  }, []);
+
+  // Scanning is permitted on the main HUD feed, and on any feed while fullscreen.
+  const aiEnabled = enableAiVision || isFullscreen;
+
+  // Start scanning when it becomes permitted, stop the moment it is not.
+  useEffect(() => {
+    setIsSegmenting(aiEnabled);
+  }, [aiEnabled]);
 
   // The segmentation loop is set up once; read the latest callback through a ref.
   const onPlantDetectedRef = useRef(onPlantDetected);
@@ -119,7 +152,7 @@ export const LiveKitVideoPlayer: React.FC<LiveKitVideoPlayerProps> = ({
 
   // AI Segmentation Loop
   useEffect(() => {
-    if (!isSegmenting || !videoRef.current || !canvasRef.current) {
+    if (!isSegmenting || !aiEnabled || !videoRef.current || !canvasRef.current) {
       setDetectedItems([]);
       // Clear the sidebar log too, so it never outlives the overlays.
       onPlantDetectedRef.current?.([]);
@@ -222,7 +255,7 @@ export const LiveKitVideoPlayer: React.FC<LiveKitVideoPlayerProps> = ({
       clearInterval(intervalId);
       if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
     };
-  }, [isSegmenting]);
+  }, [isSegmenting, aiEnabled]);
 
   const toggleFullscreen = () => {
     if (!containerRef.current) return;
@@ -261,7 +294,7 @@ export const LiveKitVideoPlayer: React.FC<LiveKitVideoPlayerProps> = ({
         )}
 
       {/* Analyzing Loader Overlay (Only when actively waiting for API) */}
-      {isAnalyzing && enableAiVision && (
+      {isAnalyzing && aiEnabled && (
         <div className="absolute top-6 left-1/2 -translate-x-1/2 z-30 pointer-events-none flex items-center gap-2 px-4 py-1.5 bg-black/40 backdrop-blur-md border border-cyan-400/50 rounded-full shadow-[0_0_15px_rgba(6,182,212,0.3)]">
           <Loader className="w-4 h-4 text-cyan-400 animate-spin" />
           <span className="text-cyan-400 font-mono text-[10px] font-bold tracking-[0.2em] animate-pulse">ANALYZING TARGET...</span>
@@ -269,7 +302,7 @@ export const LiveKitVideoPlayer: React.FC<LiveKitVideoPlayerProps> = ({
       )}
 
       {/* Continuous Scanning Laser Line (Runs only while analyzing) */}
-      {isAnalyzing && enableAiVision && (
+      {isAnalyzing && aiEnabled && (
         <div className="absolute inset-x-16 animate-scanline z-20 pointer-events-none">
           <div className="w-full h-0.5 bg-teal-400 shadow-[0_0_20px_5px_rgba(45,212,191,0.8)] relative">
             {/* Corner brackets that move with the line */}
@@ -303,7 +336,7 @@ export const LiveKitVideoPlayer: React.FC<LiveKitVideoPlayerProps> = ({
 
       {/* Quick controls */}
       <div className="absolute top-2 right-2 flex items-center gap-1 transition-opacity duration-200 z-20">
-        {enableAiVision && (
+        {aiEnabled && (
           <button
             onClick={() => setIsSegmenting(!isSegmenting)}
             className={`p-1.5 rounded-lg border transition-colors ${
