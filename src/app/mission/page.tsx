@@ -75,7 +75,6 @@ export default function MissionPage() {
             title="Forward camera"
             port={ROS_CONFIG.OBSTACLE_STREAM_PORT}
             endpoint="obstacle.mjpg"
-            rosTopic={ROS_CONFIG.TOPICS.CAMERA_COLOR_COMPRESSED}
             livekitTrackName="detection"
           />
         </FloatingPanel>
@@ -93,7 +92,6 @@ export default function MissionPage() {
             title="Wrist camera"
             port={ROS_CONFIG.ARM_CAMERA_PORT}
             endpoint="arm_camera.mjpg"
-            rosTopic={ROS_CONFIG.TOPICS.CAMERA_ARM_COMPRESSED}
             livekitTrackName="arm"
           />
         </FloatingPanel>

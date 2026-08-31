@@ -11,25 +11,21 @@ export const DualCameraView: React.FC = () => {
         title="RealSense D415 (Main Navigation & Depth)"
         port={ROS_CONFIG.REALSENSE_STREAM_PORT}
         endpoint="stream.mjpg"
-        rosTopic={ROS_CONFIG.TOPICS.CAMERA_COLOR_COMPRESSED}
         streamOptions={[
           {
             label: 'RGB Color',
             port: ROS_CONFIG.REALSENSE_STREAM_PORT,
             endpoint: 'stream.mjpg',
-            rosTopic: ROS_CONFIG.TOPICS.CAMERA_COLOR_COMPRESSED,
           },
           {
             label: 'Obstacle Depth',
             port: ROS_CONFIG.OBSTACLE_STREAM_PORT,
             endpoint: 'stream.mjpg',
-            rosTopic: ROS_CONFIG.TOPICS.CAMERA_OBSTACLE_COMPRESSED,
           },
           {
             label: 'Ground Surface',
             port: ROS_CONFIG.GROUND_STREAM_PORT,
             endpoint: 'stream.mjpg',
-            rosTopic: ROS_CONFIG.TOPICS.CAMERA_COLOR_COMPRESSED,
           },
         ]}
       />
@@ -37,7 +33,6 @@ export const DualCameraView: React.FC = () => {
         title="Manipulator Wrist Camera (Close-up Inspection)"
         port={ROS_CONFIG.ARM_CAMERA_PORT}
         endpoint="arm_camera.mjpg"
-        rosTopic={ROS_CONFIG.TOPICS.CAMERA_ARM_COMPRESSED}
       />
     </div>
   );

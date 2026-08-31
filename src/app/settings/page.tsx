@@ -339,14 +339,12 @@ export default function SettingsPage() {
             title="RealSense D415 (Port 8081)"
             port={ROS_CONFIG.REALSENSE_STREAM_PORT}
             endpoint="stream.mjpg"
-            rosTopic={ROS_CONFIG.TOPICS.CAMERA_COLOR_COMPRESSED}
             livekitTrackName="realsense"
           />
           <CameraFeed
             title="Wrist Camera (Port 8085)"
             port={ROS_CONFIG.ARM_CAMERA_PORT}
             endpoint="arm_camera.mjpg"
-            rosTopic={ROS_CONFIG.TOPICS.CAMERA_ARM_COMPRESSED}
             livekitTrackName="wrist"
           />
         </div>

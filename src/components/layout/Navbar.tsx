@@ -1,24 +1,16 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useRos } from '@/hooks/useRos';
 import { useLiveKit } from '@/hooks/useLiveKit';
 import { useAuth } from '@/hooks/useAuth';
-import { ShieldCheck, RefreshCw, WifiOff, Wifi, Radio, LogOut } from 'lucide-react';
+import { ShieldCheck, Radio, LogOut } from 'lucide-react';
 import Link from 'next/link';
 
 export const Navbar: React.FC = () => {
-  const { isConnected, operatorMode, setOperatorMode, robotHost, setRobotHost } = useRos();
+  const { operatorMode, setOperatorMode } = useRos();
   const { isConnected: isLiveKitConnected, isConnecting: isLiveKitConnecting, roomName } = useLiveKit();
   const { label: userLabel, logout } = useAuth();
-  const [isEditingIp, setIsEditingIp] = useState(false);
-  const [tempIp, setTempIp] = useState(robotHost);
-
-  const handleSaveIp = (e: React.FormEvent) => {
-    e.preventDefault();
-    setRobotHost(tempIp.trim());
-    setIsEditingIp(false);
-  };
 
   return (
     <header className="h-16 flex items-center justify-between px-6 bg-card/20 backdrop-blur-md border-b border-white/5 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] sticky top-0 z-50">
@@ -62,41 +54,6 @@ export const Navbar: React.FC = () => {
           <ShieldCheck className="w-4 h-4" />
           <span>{operatorMode === 'operator' ? 'Operator' : 'View Only'}</span>
         </button>
-
-        {/* Status Icons & IP Input */}
-        <div className="flex items-center gap-4 text-gray-400 border-l border-white/10 pl-6">
-          {isEditingIp ? (
-            <form onSubmit={handleSaveIp} className="flex items-center gap-1.5">
-              <input
-                type="text"
-                value={tempIp}
-                onChange={(e) => setTempIp(e.target.value)}
-                className="bg-card/20 backdrop-blur-md border border-primary/40 px-2 py-0.5 rounded text-xs text-primary focus:outline-none focus:border-primary w-40 font-mono shadow-[0_0_15px_rgba(0,229,192,0.2)]"
-                placeholder="Robot wss://..."
-                autoFocus
-                onBlur={handleSaveIp}
-              />
-            </form>
-          ) : (
-            <button
-              onClick={() => {
-                setTempIp(robotHost);
-                setIsEditingIp(true);
-              }}
-              className="text-xs font-mono text-gray-400 hover:text-primary transition-colors max-w-[150px] truncate"
-              title="Click to edit Robot Host"
-            >
-              {robotHost}
-            </button>
-          )}
-
-          <RefreshCw className={`w-4 h-4 ${!(isConnected || isLiveKitConnected) ? 'text-danger animate-spin-slow' : 'text-gray-400'}`} />
-          {(isConnected || isLiveKitConnected) ? (
-            <Wifi className="w-4 h-4 text-primary animate-pulse" />
-          ) : (
-            <WifiOff className="w-4 h-4 text-danger opacity-80" />
-          )}
-        </div>
 
         {/* Signed-in operator + sign out */}
         <div className="flex items-center gap-2 border-l border-white/10 pl-4">
