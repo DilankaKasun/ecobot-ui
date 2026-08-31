@@ -7,6 +7,7 @@ import { LiveKitVideoPlayer } from '@/components/video/LiveKitVideoPlayer';
 import { useOdometry } from '@/hooks/useOdometry';
 import { resolveStreamUrl } from '@/components/video/CameraFeed';
 import { DualCameraView } from '@/components/video/DualCameraView';
+import { VideoLoading } from '@/components/video/VideoLoading';
 import { BotanicalDescription } from '@/components/video/BotanicalDescription';
 import { PlantDetection } from '@/lib/plant-analysis';
 import { Rect } from '@/lib/hud-layout';
@@ -63,6 +64,8 @@ export default function DashboardPage() {
   const [refreshKey, setRefreshKey] = useState<number>(0);
   const [bgStreamError, setBgStreamError] = useState<boolean>(false);
   const [pipStreamError, setPipStreamError] = useState<boolean>(false);
+  const [bgStreamLoading, setBgStreamLoading] = useState<boolean>(true);
+  const [pipStreamLoading, setPipStreamLoading] = useState<boolean>(true);
   const [detectedPlants, setDetectedPlants] = useState<PlantDetection[]>([]);
 
   // Panels layered over the camera feed — the AR overlays route around them.
@@ -126,6 +129,8 @@ export default function DashboardPage() {
   useEffect(() => {
     setBgStreamError(false);
     setPipStreamError(false);
+    setBgStreamLoading(true);
+    setPipStreamLoading(true);
   }, [robotHost, streamHost, refreshKey]);
 
   // Subscribe to ROS CompressedImage topics as fallback over WebSocket tunnel
@@ -168,6 +173,8 @@ export default function DashboardPage() {
     if (e) e.stopPropagation();
     setBgStreamError(false);
     setPipStreamError(false);
+    setBgStreamLoading(true);
+    setPipStreamLoading(true);
     setRefreshKey((k) => k + 1);
   };
 
@@ -204,6 +211,7 @@ export default function DashboardPage() {
           ) : isLiveKitConnected && bgLiveKitTrack ? (
             <div className="w-full h-full opacity-75 mix-blend-screen">
               <LiveKitVideoPlayer
+                key={`livekit-bg-${refreshKey}`}
                 track={bgLiveKitTrack}
                 objectFit="cover"
                 className="w-full h-full"
@@ -221,12 +229,19 @@ export default function DashboardPage() {
               className="w-full h-full object-cover opacity-70 mix-blend-screen" 
             />
           ) : isConnected && bgFeedUrl && !bgStreamError ? (
-            <img 
-              src={bgFeedUrl} 
-              alt="Background Camera Feed" 
-              className="w-full h-full object-cover opacity-70 mix-blend-screen transition-opacity duration-500" 
-              onError={() => setBgStreamError(true)}
-            />
+            <>
+              <img 
+                src={bgFeedUrl} 
+                alt="Background Camera Feed" 
+                className="w-full h-full object-cover opacity-70 mix-blend-screen transition-opacity duration-500" 
+                onLoad={() => setBgStreamLoading(false)}
+                onError={() => {
+                  setBgStreamLoading(false);
+                  setBgStreamError(true);
+                }}
+              />
+              {bgStreamLoading && <VideoLoading label="Loading camera feed" />}
+            </>
           ) : (
             <div className="w-full h-full bg-gradient-to-b from-background/90 via-background to-background flex items-center justify-center">
               <div className="absolute inset-0 opacity-10 bg-[linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:40px_40px]" />
@@ -363,6 +378,7 @@ export default function DashboardPage() {
                     </div>
                   ) : isLiveKitConnected && pipLiveKitTrack ? (
                     <LiveKitVideoPlayer
+                      key={`livekit-pip-${refreshKey}`}
                       track={pipLiveKitTrack}
                       objectFit="cover"
                       className="w-full h-full transition-transform duration-300 group-hover:scale-105"
@@ -376,12 +392,19 @@ export default function DashboardPage() {
                       className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
                     />
                   ) : isConnected && pipFeedUrl && !pipStreamError ? (
-                    <img 
-                      src={pipFeedUrl} 
-                      alt="PIP Camera" 
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
-                      onError={() => setPipStreamError(true)}
-                    />
+                    <>
+                      <img 
+                        src={pipFeedUrl} 
+                        alt="PIP Camera" 
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
+                        onLoad={() => setPipStreamLoading(false)}
+                        onError={() => {
+                          setPipStreamLoading(false);
+                          setPipStreamError(true);
+                        }}
+                      />
+                      {pipStreamLoading && <VideoLoading label="Loading feed" />}
+                    </>
                   ) : (
                     <div className="flex flex-col items-center gap-1.5 p-2 text-center">
                       <VideoOff className="w-6 h-6 text-danger/40" />

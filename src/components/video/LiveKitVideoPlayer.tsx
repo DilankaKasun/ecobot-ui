@@ -4,6 +4,7 @@ import React, { useRef, useEffect, useMemo, useState } from 'react';
 import { RemoteTrack } from 'livekit-client';
 import { Maximize2, Radio, Volume2, VolumeX, ScanLine, Loader } from 'lucide-react';
 import { PlantDetailsHUD } from './PlantDetailsHUD';
+import { VideoLoading } from './VideoLoading';
 import { normalizePlantDetections, PlantDetection } from '@/lib/plant-analysis';
 import { layoutPlantHuds, Rect } from '@/lib/hud-layout';
 
@@ -42,10 +43,35 @@ export const LiveKitVideoPlayer: React.FC<LiveKitVideoPlayerProps> = ({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isMuted, setIsMuted] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isVideoReady, setIsVideoReady] = useState(false);
   const [isSegmenting, setIsSegmenting] = useState(enableAiVision);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [detectedItems, setDetectedItems] = useState<PlantDetection[]>([]);
   const [viewport, setViewport] = useState({ width: 0, height: 0, left: 0, top: 0 });
+
+  // Hold the loading overlay until the track actually paints a frame.
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el) return;
+
+    const markReady = () => setIsVideoReady(true);
+    const markWaiting = () => setIsVideoReady(false);
+
+    // A new track starts unready, unless it is already painting by the time
+    // these listeners go on.
+    setIsVideoReady(el.readyState >= 2);
+
+    el.addEventListener('loadeddata', markReady);
+    el.addEventListener('playing', markReady);
+    el.addEventListener('waiting', markWaiting);
+    el.addEventListener('emptied', markWaiting);
+    return () => {
+      el.removeEventListener('loadeddata', markReady);
+      el.removeEventListener('playing', markReady);
+      el.removeEventListener('waiting', markWaiting);
+      el.removeEventListener('emptied', markWaiting);
+    };
+  }, [track]);
 
   // Track whether this feed is the one on screen fullscreen.
   useEffect(() => {
@@ -279,6 +305,8 @@ export const LiveKitVideoPlayer: React.FC<LiveKitVideoPlayerProps> = ({
         className="w-full h-full relative z-0"
       />
       
+      {!isVideoReady && <VideoLoading label="Connecting to camera" />}
+
       {/* 2D Canvas for drawing raw segmentation polygons */}
       <canvas 
         ref={canvasRef} 

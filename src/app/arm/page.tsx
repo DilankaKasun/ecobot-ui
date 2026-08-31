@@ -58,7 +58,6 @@ export default function ArmStudioPage() {
             title="Wrist Camera"
             port={ROS_CONFIG.ARM_CAMERA_PORT}
             endpoint="arm_camera.mjpg"
-            rosTopic={ROS_CONFIG.TOPICS.CAMERA_ARM_COMPRESSED}
             livekitTrackName="arm"
           />
         </FloatingPanel>

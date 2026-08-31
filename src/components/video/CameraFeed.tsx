@@ -4,15 +4,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRos, isTunnelHost, isLocalOrLanHost } from '@/hooks/useRos';
 import { useLiveKit } from '@/hooks/useLiveKit';
 import { LiveKitVideoPlayer } from './LiveKitVideoPlayer';
+import { VideoLoading } from './VideoLoading';
 import { ROS_CONFIG } from '@/lib/ros-config';
-import { Camera, RefreshCw, AlertCircle, ShieldAlert, ExternalLink, Wifi, Eye, Radio, Maximize2 } from 'lucide-react';
-import { RemoteTrack } from 'livekit-client';
+import { Camera, RefreshCw, AlertCircle, ShieldAlert, ExternalLink, Eye, Maximize2 } from 'lucide-react';
 
 export interface StreamOption {
   label: string;
   port: number;
   endpoint: string;
-  rosTopic?: string;
   livekitTrackName?: string;
 }
 
@@ -20,7 +19,6 @@ interface CameraFeedProps {
   title: string;
   port: number;
   endpoint?: string;
-  rosTopic?: string;
   livekitTrackName?: string;
   aspectRatio?: 'video' | 'square';
   streamOptions?: StreamOption[];
@@ -83,27 +81,23 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
   title,
   port: initialPort,
   endpoint: initialEndpoint = 'stream.mjpg',
-  rosTopic: initialRosTopic,
   livekitTrackName: initialLivekitTrackName,
   aspectRatio = 'video',
   streamOptions,
 }) => {
-  const { robotHost, streamHost, isConnected, subscribe, detections } = useRos();
+  const { robotHost, streamHost, detections } = useRos();
   const { isConnected: isLiveKitConnected, videoTracks, mainCameraTrack, wristCameraTrack } = useLiveKit();
 
   const [selectedOptionIndex, setSelectedOptionIndex] = useState<number>(0);
   const [streamError, setStreamError] = useState<boolean>(false);
   const [refreshKey, setRefreshKey] = useState<number>(0);
-  const [streamMode, setStreamMode] = useState<'http' | 'ros_topic' | 'livekit'>('http');
-  const [rosImageData, setRosImageData] = useState<string | null>(null);
+  const [streamMode, setStreamMode] = useState<'http' | 'livekit'>('http');
   const [showOverlays, setShowOverlays] = useState<boolean>(true);
+  const [isStreamLoading, setIsStreamLoading] = useState<boolean>(true);
   const feedRef = useRef<HTMLDivElement>(null);
 
   const activePort = streamOptions ? streamOptions[selectedOptionIndex].port : initialPort;
   const activeEndpoint = streamOptions ? streamOptions[selectedOptionIndex].endpoint : initialEndpoint;
-  const activeRosTopic = streamOptions
-    ? streamOptions[selectedOptionIndex].rosTopic || initialRosTopic
-    : initialRosTopic;
   const activeLivekitTrackName = streamOptions
     ? streamOptions[selectedOptionIndex].livekitTrackName || initialLivekitTrackName
     : initialLivekitTrackName;
@@ -135,26 +129,18 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
   const streamUrl = resolveStreamUrl(robotHost, streamHost, activePort, activeEndpoint, refreshKey);
   const isHttpsPage = typeof window !== 'undefined' && window.location.protocol === 'https:';
 
-  // ROS Topic Image Subscription (Base64 CompressedImage)
+  // A fresh stream URL or source means waiting on a first frame again.
   useEffect(() => {
-    if (streamMode !== 'ros_topic' || !isConnected || !activeRosTopic) return;
+    setIsStreamLoading(true);
+  }, [streamUrl, streamMode]);
 
-    const unsub = subscribe(
-      activeRosTopic,
-      'sensor_msgs/msg/CompressedImage',
-      (msg: any) => {
-        if (msg && msg.data) {
-          const base64 = typeof msg.data === 'string' ? msg.data : '';
-          setRosImageData(base64.startsWith('data:') ? base64 : `data:image/jpeg;base64,${base64}`);
-        }
-      }
-    );
-
-    return () => unsub();
-  }, [streamMode, isConnected, activeRosTopic, subscribe]);
-
+  // Reconnect the feed: re-select the best available source — WebRTC when a
+  // LiveKit track is up, MJPEG otherwise — and force it to start over. This is
+  // what the separate LiveKit button used to do, folded into one control.
   const handleRefresh = () => {
     setStreamError(false);
+    setIsStreamLoading(true);
+    setStreamMode(matchingLiveKitTrack ? 'livekit' : 'http');
     setRefreshKey((k) => k + 1);
   };
 
@@ -172,8 +158,8 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
   const handleSelectOption = (idx: number) => {
     setSelectedOptionIndex(idx);
     setStreamError(false);
+    setIsStreamLoading(true);
     setRefreshKey((k) => k + 1);
-    setRosImageData(null);
   };
 
   const isMock = robotHost === 'mock' || streamHost === 'mock';
@@ -205,44 +191,6 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
             </div>
           )}
 
-          {/* LiveKit Mode Toggle */}
-          {isLiveKitConnected && matchingLiveKitTrack && (
-            <button
-              onClick={() => {
-                setStreamMode((m) => (m === 'livekit' ? 'http' : 'livekit'));
-                setStreamError(false);
-              }}
-              className={`p-1 px-1.5 rounded text-[11px] font-semibold flex items-center gap-1 transition-colors ${
-                streamMode === 'livekit'
-                  ? 'bg-primary text-black font-bold shadow-[0_0_10px_rgba(0,229,192,0.4)]'
-                  : 'bg-card-border/60 text-gray-400 hover:text-white'
-              }`}
-              title="LiveKit WebRTC Stream (<100ms latency)"
-            >
-              <Radio className="w-3 h-3" />
-              <span>LiveKit</span>
-            </button>
-          )}
-
-          {/* ROS Topic Stream Toggle */}
-          {activeRosTopic && (
-            <button
-              onClick={() => {
-                setStreamMode((m) => (m === 'ros_topic' ? 'http' : 'ros_topic'));
-                setStreamError(false);
-              }}
-              className={`p-1 px-1.5 rounded text-[11px] font-semibold flex items-center gap-1 transition-colors ${
-                streamMode === 'ros_topic'
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-card-border/60 text-gray-400 hover:text-white'
-              }`}
-              title="Toggle ROS WebSocket Compressed Image Stream"
-            >
-              <Wifi className="w-3 h-3" />
-              <span>ROS WSS</span>
-            </button>
-          )}
-
           {detections && detections.length > 0 && (
             <button
               onClick={() => setShowOverlays((v) => !v)}
@@ -259,7 +207,7 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
           <button
             onClick={handleRefresh}
             className="p-1 rounded text-gray-400 hover:text-white hover:bg-card-border transition-colors"
-            title="Reload Video Stream"
+            title="Reconnect video stream (uses LiveKit WebRTC when available)"
           >
             <RefreshCw className="w-3.5 h-3.5" />
           </button>
@@ -291,17 +239,12 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
           </div>
         ) : streamMode === 'livekit' && matchingLiveKitTrack ? (
           <LiveKitVideoPlayer
+            key={`livekit-${refreshKey}`}
             track={matchingLiveKitTrack}
             objectFit="contain"
             className="w-full h-full"
             showStats={true}
             trackName={activeLivekitTrackName || title}
-          />
-        ) : streamMode === 'ros_topic' && rosImageData ? (
-          <img
-            src={rosImageData}
-            alt={title}
-            className="w-full h-full object-contain"
           />
         ) : streamError ? (
           <div className="flex flex-col items-center gap-2 text-gray-300 text-xs p-4 text-center max-w-sm">
@@ -329,35 +272,12 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
             )}
 
             <div className="flex items-center gap-2 mt-1 flex-wrap justify-center">
-              {matchingLiveKitTrack && (
-                <button
-                  onClick={() => {
-                    setStreamMode('livekit');
-                    setStreamError(false);
-                  }}
-                  className="px-3 py-1 bg-primary/20 border border-primary/40 text-primary rounded text-xs hover:bg-primary/30 font-semibold flex items-center gap-1"
-                >
-                  <Radio className="w-3 h-3" />
-                  Use LiveKit WebRTC
-                </button>
-              )}
-              {activeRosTopic && (
-                <button
-                  onClick={() => {
-                    setStreamMode('ros_topic');
-                    setStreamError(false);
-                  }}
-                  className="px-3 py-1 bg-emerald-600/40 border border-emerald-500/50 text-emerald-200 rounded text-xs hover:bg-emerald-600/70 font-semibold flex items-center gap-1"
-                >
-                  <Wifi className="w-3 h-3" />
-                  Use ROS WSS Stream
-                </button>
-              )}
               <button
                 onClick={handleRefresh}
-                className="px-3 py-1 bg-blue-600/30 border border-blue-500/40 text-blue-300 rounded text-xs hover:bg-blue-600/50"
+                className="px-3 py-1 bg-blue-600/30 border border-blue-500/40 text-blue-300 rounded text-xs hover:bg-blue-600/50 font-semibold flex items-center gap-1"
               >
-                Retry HTTP
+                <RefreshCw className="w-3 h-3" />
+                Reconnect stream
               </button>
               {streamUrl && (
                 <a
@@ -373,12 +293,20 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
             </div>
           </div>
         ) : (
-          <img
-            src={streamUrl}
-            alt={title}
-            onError={() => setStreamError(true)}
-            className="w-full h-full object-contain"
-          />
+          <>
+            <img
+              src={streamUrl}
+              alt={title}
+              onLoad={() => setIsStreamLoading(false)}
+              onError={() => {
+                setIsStreamLoading(false);
+                setStreamError(true);
+              }}
+              className="w-full h-full object-contain"
+            />
+            {/* No URL means nothing will ever load — do not spin forever. */}
+            {isStreamLoading && streamUrl && <VideoLoading label="Loading video stream" />}
+          </>
         )}
 
         {/* AI Detection Bounding Boxes Overlay */}
