@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Camera } from 'lucide-react';
 import { RunConsole } from '@/components/mission/RunConsole';
 import { ScanPanel } from '@/components/mission/ScanPanel';
+import { ReportList } from '@/components/mission/ReportList';
 import { CameraFeed } from '@/components/video/CameraFeed';
 import { FloatingPanel } from '@/components/layout/FloatingPanel';
 import { ROS_CONFIG } from '@/lib/ros-config';
@@ -60,6 +61,9 @@ export default function MissionPage() {
       <RunConsole />
 
       <ScanPanel />
+
+      {/* Every plant scanned so far, each opening in its own tab. */}
+      <ReportList />
 
       {/* Both feeds float, as on the arm studio, so they can sit beside
           whichever part of the run is being watched. */}
