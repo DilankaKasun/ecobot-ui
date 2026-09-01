@@ -7,6 +7,7 @@ import { PlantDetailsHUD } from './PlantDetailsHUD';
 import { VideoLoading } from './VideoLoading';
 import { normalizePlantDetections, PlantDetection } from '@/lib/plant-analysis';
 import { layoutPlantHuds, Rect } from '@/lib/hud-layout';
+import { useRos } from '@/hooks/useRos';
 
 interface LiveKitVideoPlayerProps {
   track: RemoteTrack | null | undefined;
@@ -53,6 +54,8 @@ export const LiveKitVideoPlayer: React.FC<LiveKitVideoPlayerProps> = ({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [detectedItems, setDetectedItems] = useState<PlantDetection[]>([]);
   const [viewport, setViewport] = useState({ width: 0, height: 0, left: 0, top: 0 });
+  const { subscribe, publish } = useRos();
+  const [alreadyAnalyzed, setAlreadyAnalyzed] = useState<Set<string>>(new Set());
 
   // Hold the loading overlay until the track actually paints a frame.
   useEffect(() => {
@@ -173,112 +176,108 @@ export const LiveKitVideoPlayer: React.FC<LiveKitVideoPlayerProps> = ({
     };
   }, [track]);
 
-  // AI Segmentation Loop
+  // ROS YOLO Subscription Loop
   useEffect(() => {
-    if (!isSegmenting || !aiEnabled || !videoRef.current || !canvasRef.current) {
+    if (!isSegmenting || !aiEnabled) {
       setDetectedItems([]);
-      // Clear the sidebar log too, so it never outlives the overlays.
       onPlantDetectedRef.current?.([]);
       return;
     }
 
     const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    
-    let intervalId: NodeJS.Timeout;
+    if (!video) return;
+
     let isFetching = false;
-    let prevImageData: Uint8ClampedArray | null = null;
-
-    const captureAndSegment = async () => {
-      if (isFetching || !video || video.readyState < 2) return;
-      
-      // Set canvas internal resolution to match display size for drawing
-      canvas.width = video.clientWidth;
-      canvas.height = video.clientHeight;
-
-      // Create an offscreen canvas to capture the image
-      const offscreen = document.createElement('canvas');
-      offscreen.width = video.videoWidth || 640;
-      offscreen.height = video.videoHeight || 480;
-      const offCtx = offscreen.getContext('2d', { willReadFrequently: true });
-      if (!offCtx) return;
-      
-      offCtx.drawImage(video, 0, 0, offscreen.width, offscreen.height);
-      const currImageData = offCtx.getImageData(0, 0, offscreen.width, offscreen.height).data;
-
-      // Check if frame has changed significantly
-      let shouldProcess = true;
-      if (prevImageData) {
-        let diffCount = 0;
-        const step = 40; // check every 10th pixel (4 channels * 10)
-        const totalPixelsChecked = Math.floor(currImageData.length / step);
-        
-        for (let i = 0; i < currImageData.length; i += step) {
-          const rDiff = Math.abs(currImageData[i] - prevImageData[i]);
-          const gDiff = Math.abs(currImageData[i+1] - prevImageData[i+1]);
-          const bDiff = Math.abs(currImageData[i+2] - prevImageData[i+2]);
-          // High color threshold (80) to ignore minor lighting changes and small leaf shadows
-          if (rDiff + gDiff + bDiff > 80) diffCount++;
-        }
-        
-        // If less than 15% of pixels changed significantly, skip API call
-        // This high threshold ignores wind moving leaves but catches the whole camera moving
-        if (diffCount / totalPixelsChecked < 0.15) {
-          shouldProcess = false;
-        }
-      }
-
-      // Store current frame for next comparison
-      prevImageData = new Uint8ClampedArray(currImageData);
-
-      if (!shouldProcess) {
-        // Keep existing canvas and detectedItems, just skip the expensive API call
-        return;
-      }
-
-      // Clear the old HUD and masks immediately before scanning the new frame!
-      setDetectedItems([]);
-      onPlantDetectedRef.current?.([]);
-      if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      const imageBase64 = offscreen.toDataURL('image/jpeg', 0.8);
-
+    
+    const unsubscribe = subscribe('/ecobot/vision/plants', 'std_msgs/String', async (msg: any) => {
       try {
-        isFetching = true;
-        setIsAnalyzing(true);
-        const res = await fetch('/api/segment', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imageBase64 }),
+        if (!video.videoWidth) return;
+        const data = JSON.parse(msg.data);
+        
+        // Backend returns: box_2d: [xmin, ymin, xmax, ymax] in pixels
+        // Frontend needs: [ymin, xmin, ymax, xmax] normalized to 0-1000
+        const plants = data.map((p: any) => {
+           const [xmin, ymin, xmax, ymax] = p.box_2d;
+           const normYmin = Math.round((ymin / video.videoHeight) * 1000);
+           const normXmin = Math.round((xmin / video.videoWidth) * 1000);
+           const normYmax = Math.round((ymax / video.videoHeight) * 1000);
+           const normXmax = Math.round((xmax / video.videoWidth) * 1000);
+           return {
+             ...p,
+             box_2d: [normYmin, normXmin, normYmax, normXmax]
+           };
         });
-        const data = await res.json();
-
-        // Gemini returns the label AND the per-plant analysis the HUD renders;
-        // normalize fills in anything the model left out.
-        const plants = normalizePlantDetections(data.items);
+        
         setDetectedItems(plants);
         onPlantDetectedRef.current?.(plants);
-
-        // Polygon masks stay hidden — the bracket box + reticle reads cleaner.
-        if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
-      } catch (err) {
-        console.error('Segmentation API error:', err);
-      } finally {
-        isFetching = false;
-        setIsAnalyzing(false);
+        
+        if (isFetching) return;
+        
+        for (const p of data) {
+           const [xmin, ymin, xmax, ymax] = p.box_2d;
+           const boxWidth = xmax - xmin;
+           const boxHeight = ymax - ymin;
+           const areaPercent = (boxWidth * boxHeight) / (video.videoWidth * video.videoHeight);
+           
+           if (areaPercent > 0.1 && !alreadyAnalyzed.has(p.id)) {
+               const canvas = canvasRef.current;
+               if (!canvas) continue;
+               
+               const offscreen = document.createElement('canvas');
+               const padX = boxWidth * 0.1;
+               const padY = boxHeight * 0.1;
+               const cXmin = Math.max(0, xmin - padX);
+               const cYmin = Math.max(0, ymin - padY);
+               const cXmax = Math.min(video.videoWidth, xmax + padX);
+               const cYmax = Math.min(video.videoHeight, ymax + padY);
+               
+               offscreen.width = cXmax - cXmin;
+               offscreen.height = cYmax - cYmin;
+               
+               const offCtx = offscreen.getContext('2d');
+               if (offCtx) {
+                 offCtx.drawImage(video, cXmin, cYmin, offscreen.width, offscreen.height, 0, 0, offscreen.width, offscreen.height);
+                 const imageBase64 = offscreen.toDataURL('image/jpeg', 0.8);
+                 
+                 isFetching = true;
+                 setIsAnalyzing(true);
+                 
+                 try {
+                     const res = await fetch('/api/analyze_plant', {
+                       method: 'POST',
+                       headers: { 'Content-Type': 'application/json' },
+                       body: JSON.stringify({ imageBase64 }),
+                     });
+                     
+                     const analysis = await res.json();
+                     setAlreadyAnalyzed(prev => new Set(prev).add(p.id));
+                     
+                     publish('/ecobot/map_pin', 'std_msgs/String', {
+                        data: JSON.stringify({
+                           id: p.id,
+                           desc: analysis.condition?.status || "Analyzed",
+                           distance: 1.0
+                        })
+                     });
+                 } catch (e) {
+                     console.error(e);
+                 } finally {
+                     isFetching = false;
+                     setIsAnalyzing(false);
+                 }
+               }
+               break; 
+           }
+        }
+      } catch (e) {
+        console.error("YOLO parse error", e);
       }
-    };
-
-    // Run immediately then every 3 seconds
-    captureAndSegment();
-    intervalId = setInterval(captureAndSegment, 3000);
+    });
 
     return () => {
-      clearInterval(intervalId);
-      if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+      unsubscribe();
     };
-  }, [isSegmenting, aiEnabled]);
+  }, [isSegmenting, aiEnabled, subscribe, publish, alreadyAnalyzed]);
 
   const toggleFullscreen = () => {
     if (!containerRef.current) return;
