@@ -283,15 +283,15 @@ export const ArmVisualizer3D: React.FC = () => {
   const reach = Math.hypot(currentPose.x, currentPose.y, currentPose.z);
 
   return (
-    <div className="bg-card border border-card-border rounded-xl p-4 shadow-lg">
+    <div className="bg-card border border-card-border rounded-xl p-4 shadow-sm">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Boxes className="w-4 h-4 text-primary" />
-          <h3 className="font-semibold text-white text-sm">Arm Pose</h3>
+          <h3 className="font-semibold text-foreground text-sm">Arm Pose</h3>
         </div>
         <button
           onClick={() => sceneRef.current?.resetView()}
-          className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold text-gray-400 hover:text-gray-100 hover:bg-card-border/60 transition-colors"
+          className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold text-muted-foreground hover:text-foreground hover:bg-card-border/60 transition-colors"
           title="Reset camera"
         >
           <RotateCcw className="w-3 h-3" />
@@ -313,8 +313,8 @@ export const ArmVisualizer3D: React.FC = () => {
           { label: 'Elbow', value: joints.elbow, cls: 'text-purple-300' },
           { label: 'Wrist', value: joints.wrist, cls: 'text-rose-300' },
         ].map((j) => (
-          <div key={j.label} className="bg-black/30 rounded-lg py-1.5">
-            <div className="text-[10px] text-gray-500 uppercase tracking-wide">
+          <div key={j.label} className="bg-muted/50 rounded-lg py-1.5">
+            <div className="text-[10px] text-muted-foreground uppercase tracking-wide">
               {j.label}
             </div>
             <div className={`font-mono text-xs font-bold ${j.cls}`}>
@@ -329,10 +329,10 @@ export const ArmVisualizer3D: React.FC = () => {
           { label: 'X', value: currentPose.x, cls: 'text-blue-400' },
           { label: 'Y', value: currentPose.y, cls: 'text-purple-400' },
           { label: 'Z', value: currentPose.z, cls: 'text-emerald-400' },
-          { label: 'Reach', value: reach, cls: 'text-gray-300' },
+          { label: 'Reach', value: reach, cls: 'text-muted-foreground' },
         ].map((c) => (
-          <div key={c.label} className="bg-black/30 rounded-lg py-1.5">
-            <div className="text-[10px] text-gray-500 uppercase tracking-wide">
+          <div key={c.label} className="bg-muted/50 rounded-lg py-1.5">
+            <div className="text-[10px] text-muted-foreground uppercase tracking-wide">
               {c.label}
             </div>
             <div className={`font-mono text-xs font-bold ${c.cls}`}>

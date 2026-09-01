@@ -14,20 +14,20 @@ import {
 
 const Cell: React.FC<{
   label: string; value: React.ReactNode; sub?: string; tone?: string;
-}> = ({ label, value, sub, tone = 'text-gray-100' }) => (
-  <div className="bg-black/30 rounded-lg px-2.5 py-2 min-w-0">
-    <div className="text-[9px] text-gray-500 uppercase tracking-wide truncate">
+}> = ({ label, value, sub, tone = 'text-foreground' }) => (
+  <div className="bg-muted rounded-lg px-2.5 py-2 min-w-0">
+    <div className="text-[9px] text-muted-foreground uppercase tracking-wide truncate">
       {label}
     </div>
     <div className={`font-mono text-sm font-bold truncate ${tone}`}>{value}</div>
-    {sub && <div className="text-[9px] text-gray-600 font-mono truncate">{sub}</div>}
+    {sub && <div className="text-[9px] text-muted-foreground/70 font-mono truncate">{sub}</div>}
   </div>
 );
 
 const STATE_TONE: Record<string, string> = {
-  IDLE: 'text-gray-400 bg-gray-500/10 border-gray-500/30',
+  IDLE: 'text-muted-foreground bg-muted border-card-border',
   SURVEY: 'text-violet-300 bg-violet-500/10 border-violet-500/40',
-  PICK: 'text-gray-300 bg-gray-500/10 border-gray-500/30',
+  PICK: 'text-muted-foreground bg-muted border-card-border',
   REACQUIRE: 'text-violet-300 bg-violet-500/10 border-violet-500/40',
   DRIVE: 'text-sky-300 bg-sky-500/10 border-sky-500/40',
   HANDOVER: 'text-amber-300 bg-amber-500/10 border-amber-500/40',
@@ -42,20 +42,20 @@ const DRIVER_BADGE: Record<string, { icon: React.ElementType; tone: string; text
   map: { icon: Map, tone: 'text-sky-300 bg-sky-500/15 border-sky-500/40', text: 'MAP DRIVER' },
   camera: { icon: Camera, tone: 'text-emerald-300 bg-emerald-500/15 border-emerald-500/40', text: 'CAMERA DRIVER' },
   handover: { icon: Crosshair, tone: 'text-amber-300 bg-amber-500/15 border-amber-500/40', text: 'HANDING OVER' },
-  none: { icon: CircleDot, tone: 'text-gray-400 bg-gray-500/10 border-gray-500/30', text: 'NOBODY DRIVING' },
+  none: { icon: CircleDot, tone: 'text-muted-foreground bg-muted border-card-border', text: 'NOBODY DRIVING' },
 };
 
 /** One velocity source, with the live flag the safety layer actually uses. */
 const VelRow: React.FC<{ name: string; vel: Vel; note?: string }> = ({ name, vel, note }) => (
   <div className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border font-mono text-[11px] ${
-    vel.live ? 'bg-sky-500/10 border-sky-500/40' : 'bg-black/30 border-card-border'
+    vel.live ? 'bg-sky-500/10 border-sky-500/40' : 'bg-muted border-card-border'
   }`}>
-    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${vel.live ? 'bg-sky-400 animate-pulse' : 'bg-gray-700'}`} />
-    <span className="text-gray-400 w-20 shrink-0 truncate">{name}</span>
-    <span className="text-gray-100 w-16 shrink-0">{vel.x >= 0 ? ' ' : ''}{vel.x.toFixed(3)}</span>
-    <span className="text-gray-100 w-16 shrink-0">{vel.z >= 0 ? ' ' : ''}{vel.z.toFixed(3)}</span>
-    <span className="text-gray-600 w-14 shrink-0">{vel.hz.toFixed(0)}Hz</span>
-    {note && <span className="text-gray-600 truncate">{note}</span>}
+    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${vel.live ? 'bg-sky-400 animate-pulse' : 'bg-muted-foreground/20'}`} />
+    <span className="text-muted-foreground w-20 shrink-0 truncate">{name}</span>
+    <span className="text-foreground w-16 shrink-0">{vel.x >= 0 ? ' ' : ''}{vel.x.toFixed(3)}</span>
+    <span className="text-foreground w-16 shrink-0">{vel.z >= 0 ? ' ' : ''}{vel.z.toFixed(3)}</span>
+    <span className="text-muted-foreground/70 w-14 shrink-0">{vel.hz.toFixed(0)}Hz</span>
+    {note && <span className="text-muted-foreground/70 truncate">{note}</span>}
   </div>
 );
 
@@ -63,7 +63,7 @@ const CAND_TONE: Record<string, string> = {
   pending: 'text-sky-300',
   done: 'text-emerald-400',
   failed: 'text-rose-400',
-  duplicate: 'text-gray-500',
+  duplicate: 'text-muted-foreground',
 };
 
 /* ------------------------------------------------------------- console */
@@ -90,7 +90,7 @@ export const RunConsole: React.FC = () => {
     (a, d) => (a == null || (d.distance ?? 99) < (a.distance ?? 99) ? d : a), null);
 
   return (
-    <div className="bg-card border border-card-border rounded-xl p-4 shadow-lg space-y-3">
+    <div className="bg-card border border-card-border rounded-xl p-4 shadow-sm space-y-3">
 
       {/* ---- headline: state, driver, deadline ---- */}
       <div className="flex items-center gap-2 flex-wrap">
@@ -124,13 +124,13 @@ export const RunConsole: React.FC = () => {
             plant_run_node SILENT
           </span>
         )}
-        <span className="font-mono text-[10px] text-gray-600">
+        <span className="font-mono text-[10px] text-muted-foreground/70">
           {transport === 'none' ? 'no link' : transport}
         </span>
       </div>
 
       {/* the node's own words — one line, its reason for what it is doing */}
-      <div className="font-mono text-[11px] text-gray-300 bg-black/30 rounded-lg px-3 py-2 leading-snug">
+      <div className="font-mono text-[11px] text-muted-foreground bg-muted rounded-lg px-3 py-2 leading-snug">
         {status.saying || '—'}
       </div>
 
@@ -138,10 +138,10 @@ export const RunConsole: React.FC = () => {
       {status.deadline_s != null && (
         <div className="space-y-1">
           <div className="flex justify-between font-mono text-[10px]">
-            <span className="text-gray-500">
+            <span className="text-muted-foreground">
               {status.elapsed_s.toFixed(1)}s elapsed
             </span>
-            <span className={deadlineClose ? 'text-rose-400 font-bold' : 'text-gray-500'}>
+            <span className={deadlineClose ? 'text-rose-400 font-bold' : 'text-muted-foreground'}>
               {timeLeft?.toFixed(1)}s until timeout ({status.deadline_s}s)
             </span>
           </div>
@@ -165,7 +165,7 @@ export const RunConsole: React.FC = () => {
               className={`px-2 py-1 rounded font-mono text-[9px] font-bold whitespace-nowrap border ${
                 active
                   ? (STATE_TONE[s] ?? STATE_TONE.IDLE)
-                  : 'text-gray-700 bg-black/20 border-transparent'}`}
+                  : 'text-muted-foreground bg-muted border-transparent'}`}
             >
               {s}
             </div>
@@ -176,7 +176,7 @@ export const RunConsole: React.FC = () => {
       {/* ---- controls ---- */}
       <div className="flex items-end gap-2 flex-wrap">
         <div>
-          <label htmlFor="samples" className="block text-[9px] text-gray-500 uppercase tracking-wide mb-1">
+          <label htmlFor="samples" className="block text-[9px] text-muted-foreground uppercase tracking-wide mb-1">
             Photos
           </label>
           <input
@@ -189,14 +189,14 @@ export const RunConsole: React.FC = () => {
         <button
           onClick={() => start(samples)}
           disabled={!canControl || running}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-xs font-semibold"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 disabled:bg-muted-foreground/20 disabled:text-muted-foreground text-white text-xs font-semibold"
         >
           <Play className="w-3.5 h-3.5" /> Start run
         </button>
         <button
           onClick={stop}
           disabled={!canControl || !running}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-rose-700/80 hover:bg-rose-600 disabled:bg-gray-700 disabled:text-gray-500 text-white text-xs font-semibold"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-rose-700/80 hover:bg-rose-600 disabled:bg-muted-foreground/20 disabled:text-muted-foreground text-white text-xs font-semibold"
         >
           <Square className="w-3.5 h-3.5" /> Stop
         </button>
@@ -204,7 +204,7 @@ export const RunConsole: React.FC = () => {
           onClick={next}
           disabled={!canControl || !running}
           title="Give up on this plant and pick the next"
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-card-border hover:bg-gray-700 disabled:opacity-40 text-gray-200 text-xs font-semibold"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-card-border hover:bg-muted-foreground/20 disabled:opacity-40 text-foreground text-xs font-semibold"
         >
           <SkipForward className="w-3.5 h-3.5" /> Skip plant
         </button>
@@ -212,7 +212,7 @@ export const RunConsole: React.FC = () => {
           onClick={() => scanHere(samples)}
           disabled={!canControl || running}
           title="Scan where the robot already stands — no driving"
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-700/80 hover:bg-emerald-600 disabled:bg-gray-700 disabled:text-gray-500 text-white text-xs font-semibold"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-700/80 hover:bg-emerald-600 disabled:bg-muted-foreground/20 disabled:text-muted-foreground text-white text-xs font-semibold"
         >
           <Camera className="w-3.5 h-3.5" /> Scan here
         </button>
@@ -235,7 +235,7 @@ export const RunConsole: React.FC = () => {
           sub={status.target
             ? `${status.target.range_m.toFixed(2)}m @ ${status.target.heading_deg.toFixed(0)}°`
             : undefined}
-          tone={status.target ? 'text-emerald-300' : 'text-gray-600'}
+          tone={status.target ? 'text-emerald-300' : 'text-muted-foreground/70'}
         />
         <Cell
           label="Nearest plant seen"
@@ -243,7 +243,7 @@ export const RunConsole: React.FC = () => {
           sub={nearest?.bearing_deg != null
             ? `${nearest.bearing_deg >= 0 ? '+' : ''}${nearest.bearing_deg.toFixed(0)}° off centre`
             : 'not in view'}
-          tone={nearest ? 'text-emerald-300' : 'text-gray-600'}
+          tone={nearest ? 'text-emerald-300' : 'text-muted-foreground/70'}
         />
         <Cell label="Plants seen" value={status.plants.length}
               sub={`${status.done} scanned`} />
@@ -255,19 +255,19 @@ export const RunConsole: React.FC = () => {
           label="Detections"
           value={`${plantDets.length} plant`}
           sub={`${detections.length} objects total`}
-          tone={plantDets.length ? 'text-emerald-300' : 'text-gray-500'}
+          tone={plantDets.length ? 'text-emerald-300' : 'text-muted-foreground'}
         />
       </div>
 
       {/* ---- distance to the two rings ---- */}
       {nearest?.distance != null && (
         <div className="space-y-1">
-          <div className="flex justify-between font-mono text-[10px] text-gray-500">
+          <div className="flex justify-between font-mono text-[10px] text-muted-foreground">
             <span>park 0.65m</span>
             <span>hand over 1.20m</span>
             <span>3m</span>
           </div>
-          <div className="relative h-6 bg-black/40 rounded-lg overflow-hidden">
+          <div className="relative h-6 bg-muted rounded-lg overflow-hidden">
             {/* blind zone the depth camera cannot measure in */}
             <div className="absolute inset-y-0 left-0 bg-rose-500/25"
                  style={{ width: `${(0.5 / 3) * 100}%` }} />
@@ -289,7 +289,7 @@ export const RunConsole: React.FC = () => {
 
       {/* ---- who is publishing velocity ---- */}
       <div className="space-y-1">
-        <div className="flex gap-2 font-mono text-[9px] text-gray-600 px-2.5">
+        <div className="flex gap-2 font-mono text-[9px] text-muted-foreground/70 px-2.5">
           <span className="w-3.5" /><span className="w-20">source</span>
           <span className="w-16">lin x</span><span className="w-16">ang z</span>
           <span className="w-14">rate</span>
@@ -302,24 +302,24 @@ export const RunConsole: React.FC = () => {
       {/* ---- plants the survey knows about ---- */}
       {status.plants.length > 0 && (
         <div className="space-y-1">
-          <div className="text-[9px] text-gray-500 uppercase tracking-wide">
+          <div className="text-[9px] text-muted-foreground uppercase tracking-wide">
             Plants ({status.plants.length})
           </div>
           <div className="max-h-32 overflow-y-auto space-y-0.5">
             {status.plants.map((p: PlantCandidate, i: number) => (
               <div key={i}
-                   className="flex items-center gap-2 font-mono text-[10px] bg-black/25 rounded px-2 py-1">
-                <span className={`w-16 shrink-0 font-bold ${CAND_TONE[p.state] ?? 'text-gray-400'}`}>
+                   className="flex items-center gap-2 font-mono text-[10px] bg-muted rounded px-2 py-1">
+                <span className={`w-16 shrink-0 font-bold ${CAND_TONE[p.state] ?? 'text-muted-foreground'}`}>
                   {p.state}
                 </span>
-                <span className="text-gray-300 w-14 shrink-0">
+                <span className="text-muted-foreground w-14 shrink-0">
                   {p.heading_deg.toFixed(0)}°
                 </span>
-                <span className="text-gray-300 w-14 shrink-0">
+                <span className="text-muted-foreground w-14 shrink-0">
                   {p.range_m.toFixed(2)}m
                 </span>
-                <span className="text-gray-600 w-10 shrink-0">×{p.sightings}</span>
-                <span className="text-gray-600 truncate">{p.reason || p.name}</span>
+                <span className="text-muted-foreground/70 w-10 shrink-0">×{p.sightings}</span>
+                <span className="text-muted-foreground/70 truncate">{p.reason || p.name}</span>
               </div>
             ))}
           </div>
@@ -328,11 +328,11 @@ export const RunConsole: React.FC = () => {
 
       {/* ---- what the camera can see right now ---- */}
       <div className="space-y-1">
-        <div className="text-[9px] text-gray-500 uppercase tracking-wide">
+        <div className="text-[9px] text-muted-foreground uppercase tracking-wide">
           Live detections
         </div>
         {detections.length === 0 ? (
-          <div className="font-mono text-[10px] text-gray-600 bg-black/25 rounded px-2 py-1.5">
+          <div className="font-mono text-[10px] text-muted-foreground/70 bg-muted rounded px-2 py-1.5">
             nothing in view
           </div>
         ) : (
@@ -343,17 +343,17 @@ export const RunConsole: React.FC = () => {
                 <div key={i}
                      className={`flex items-center gap-2 font-mono text-[10px] rounded px-2 py-1 ${
                        plant ? 'bg-emerald-500/10 border border-emerald-500/30'
-                             : 'bg-black/25'}`}>
-                  <span className={`w-28 shrink-0 truncate ${plant ? 'text-emerald-300 font-bold' : 'text-gray-400'}`}>
+                             : 'bg-muted'}`}>
+                  <span className={`w-28 shrink-0 truncate ${plant ? 'text-emerald-300 font-bold' : 'text-muted-foreground'}`}>
                     {d.class_name}
                   </span>
-                  <span className="text-gray-500 w-10 shrink-0">
+                  <span className="text-muted-foreground w-10 shrink-0">
                     {(d.confidence * 100).toFixed(0)}%
                   </span>
-                  <span className="text-gray-300 w-14 shrink-0">
+                  <span className="text-muted-foreground w-14 shrink-0">
                     {d.distance != null ? `${d.distance.toFixed(2)}m` : 'no depth'}
                   </span>
-                  <span className="text-gray-300 w-14 shrink-0">
+                  <span className="text-muted-foreground w-14 shrink-0">
                     {d.bearing_deg != null
                       ? `${d.bearing_deg >= 0 ? '+' : ''}${d.bearing_deg.toFixed(0)}°`
                       : '—'}

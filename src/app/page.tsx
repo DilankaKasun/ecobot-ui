@@ -203,13 +203,13 @@ export default function DashboardPage() {
       
       {/* --- BACKGROUND CAMERA FEED (HUD MODE) --- */}
       {viewMode === 'hud' && (
-        <div className="absolute inset-0 w-full h-full z-0 bg-background/80 transition-all duration-500 overflow-hidden">
+        <div className="absolute inset-0 w-full h-full z-0 bg-black/90 transition-all duration-500 overflow-hidden">
           {isMock ? (
-            <div className="w-full h-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-950/40 via-background to-background flex items-center justify-center opacity-60">
+            <div className="w-full h-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-950/40 via-black/80 to-black flex items-center justify-center opacity-60">
               <div className="absolute inset-0 opacity-10 bg-[linear-gradient(rgba(0,229,192,0.15)_1px,transparent_1px),linear-gradient(90deg,rgba(0,229,192,0.15)_1px,transparent_1px)] bg-[size:32px_32px]" />
             </div>
           ) : isLiveKitConnected && bgLiveKitTrack ? (
-            <div className="w-full h-full opacity-75 mix-blend-screen">
+            <div className="w-full h-full opacity-75 dark:mix-blend-screen">
               <LiveKitVideoPlayer
                 key={`livekit-bg-${refreshKey}`}
                 track={bgLiveKitTrack}
@@ -226,14 +226,14 @@ export default function DashboardPage() {
             <img 
               src={bgRosImage} 
               alt="Background Camera Feed" 
-              className="w-full h-full object-cover opacity-70 mix-blend-screen" 
+              className="w-full h-full object-cover opacity-70 dark:mix-blend-screen" 
             />
           ) : isConnected && bgFeedUrl && !bgStreamError ? (
             <>
               <img 
                 src={bgFeedUrl} 
                 alt="Background Camera Feed" 
-                className="w-full h-full object-cover opacity-70 mix-blend-screen transition-opacity duration-500" 
+                className="w-full h-full object-cover opacity-70 dark:mix-blend-screen transition-opacity duration-500" 
                 onLoad={() => setBgStreamLoading(false)}
                 onError={() => {
                   setBgStreamLoading(false);
@@ -243,13 +243,13 @@ export default function DashboardPage() {
               {bgStreamLoading && <VideoLoading label="Loading camera feed" />}
             </>
           ) : (
-            <div className="w-full h-full bg-gradient-to-b from-background/90 via-background to-background flex items-center justify-center">
+            <div className="w-full h-full bg-gradient-to-b from-black/90 via-black to-black flex items-center justify-center">
               <div className="absolute inset-0 opacity-10 bg-[linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:40px_40px]" />
             </div>
           )}
           <div className="absolute inset-0 pointer-events-none opacity-[0.03] bg-[linear-gradient(transparent_50%,rgba(0,0,0,1)_50%)] bg-[length:100%_4px]" />
           {/* Subtle radial gradient overlay to ensure UI elements remain readable */}
-          <div className="absolute inset-0 bg-radial-gradient from-transparent to-background/80 pointer-events-none" />
+          <div className="absolute inset-0 bg-radial-gradient from-transparent dark:to-background/80 to-background/5 pointer-events-none" />
         </div>
       )}
 
@@ -257,13 +257,13 @@ export default function DashboardPage() {
       {viewMode === 'dual_grid' ? (
         <div className="relative z-10 w-full h-full p-4 overflow-y-auto space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-white flex items-center gap-2">
+            <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
               <LayoutGrid className="w-4 h-4 text-primary" />
               Side-by-Side Dual Camera Feeds
             </h2>
             <button
               onClick={() => setViewMode('hud')}
-              className="px-3 py-1 bg-card-border hover:bg-white/10 text-xs font-semibold rounded-lg text-gray-200 transition-colors"
+              className="px-3 py-1 bg-card-border hover:bg-white/10 text-xs font-semibold rounded-lg text-foreground transition-colors"
             >
               Return to HUD
             </button>
@@ -275,13 +275,13 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-full relative z-10 p-2 overflow-hidden pointer-events-none">
           
           {/* LEFT COLUMN: Data Overview & Real 2D Map */}
-          <div className="lg:col-span-3 flex flex-col gap-4 z-10 h-full overflow-hidden pointer-events-auto">
+          <div className="lg:col-span-3 flex flex-col gap-4 z-10 h-full overflow-hidden">
             
             {/* Data Overview Panel */}
             {detectedPlants.length > 0 && (
               <div
                 ref={logPanelRef}
-                className="flex flex-col transition-all duration-300 animate-[fade-in-down_0.4s_ease-out_forwards] p-4 mt-16 bg-black/10 rounded-xl"
+                className="flex flex-col transition-all duration-300 animate-[fade-in-down_0.4s_ease-out_forwards] p-4 mt-16 bg-black/10 rounded-xl pointer-events-auto"
               >
                 <div className="flex items-center justify-between text-green-400 cursor-pointer select-none mb-2" onClick={() => toggleCollapse('data')}>
                   <h2 className="text-base font-bold tracking-widest uppercase flex items-center gap-2">
@@ -291,8 +291,8 @@ export default function DashboardPage() {
                     </span>
                   </h2>
                   <div className="flex items-center gap-2">
-                    <Info className="w-4 h-4 text-gray-500" />
-                    {collapsed.data ? <ChevronDown className="w-4 h-4 text-gray-500" /> : <ChevronUp className="w-4 h-4 text-gray-500" />}
+                    <Info className="w-4 h-4 text-muted-foreground" />
+                    {collapsed.data ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronUp className="w-4 h-4 text-muted-foreground" />}
                   </div>
                 </div>
 
@@ -330,17 +330,17 @@ export default function DashboardPage() {
                     <WifiOff className="w-10 h-10 text-danger/80" />
                   </div>
                   <h2 className="text-xl font-bold tracking-widest text-danger animate-pulse-slow">CONNECTION LOST</h2>
-                  <p className="text-xs text-gray-500 font-mono mt-2 tracking-[0.2em]">SEARCHING FOR ROBOT SIGNAL...</p>
+                  <p className="text-xs text-muted-foreground font-mono mt-2 tracking-[0.2em]">SEARCHING FOR ROBOT SIGNAL...</p>
                 </div>
               </div>
             )}
           </div>
 
           {/* RIGHT COLUMN: Wrist Cam & Active Drawer Overlay */}
-          <div className="lg:col-span-3 flex flex-col justify-end gap-4 z-10 h-full overflow-hidden pointer-events-auto">
-            <div ref={camPanelRef} className="bg-card/20 backdrop-blur-md border border-white/5 rounded-xl p-4 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] flex flex-col transition-all duration-300">
+          <div className="lg:col-span-3 flex flex-col justify-end gap-4 z-10 h-full overflow-hidden">
+            <div ref={camPanelRef} className="bg-card backdrop-blur-md border border-card-border rounded-xl p-4 shadow-sm flex flex-col transition-all duration-300 pointer-events-auto">
               <div className="flex items-center justify-between text-xs cursor-pointer select-none" onClick={() => toggleCollapse('cam')}>
-                <span className="text-gray-400 font-mono">{pipLabel}</span>
+                <span className="text-muted-foreground font-mono">{pipLabel}</span>
                 <div className="flex items-center gap-2">
                   {isLiveKitConnected && (
                     <span className="flex items-center gap-1 text-[10px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded border border-primary/30">
@@ -350,15 +350,15 @@ export default function DashboardPage() {
                   )}
                   <button
                     onClick={handleRefreshStreams}
-                    className="p-1 rounded text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+                    className="p-1 rounded text-muted-foreground hover:text-white hover:bg-white/10 transition-colors"
                     title="Reload Camera Feeds"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
                   </button>
-                  <span className={`font-mono font-bold ${!isConnected ? 'text-danger/80 animate-pulse-slow' : 'text-primary'}`}>
-                    {!isConnected ? 'OFFLINE' : (pipStreamError && !pipRosImage && !pipLiveKitTrack) ? 'BLOCKED' : 'ONLINE'}
+                  <span className={`font-mono font-bold ${!(isConnected || isLiveKitConnected) ? 'text-danger/80 animate-pulse-slow' : 'text-primary'}`}>
+                    {!(isConnected || isLiveKitConnected) ? 'OFFLINE' : (pipStreamError && !pipRosImage && !pipLiveKitTrack) ? 'BLOCKED' : 'ONLINE'}
                   </span>
-                  {collapsed.cam ? <ChevronDown className="w-4 h-4 text-gray-500" /> : <ChevronUp className="w-4 h-4 text-gray-500" />}
+                  {collapsed.cam ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronUp className="w-4 h-4 text-muted-foreground" />}
                 </div>
               </div>
               
@@ -408,7 +408,7 @@ export default function DashboardPage() {
                   ) : (
                     <div className="flex flex-col items-center gap-1.5 p-2 text-center">
                       <VideoOff className="w-6 h-6 text-danger/40" />
-                      <span className="text-[10px] font-mono text-gray-400">Feed Offline (Port {pipPort})</span>
+                      <span className="text-[10px] font-mono text-muted-foreground">Feed Offline (Port {pipPort})</span>
                       <button
                         onClick={handleRefreshStreams}
                         className="px-2 py-0.5 bg-primary/20 text-primary border border-primary/40 rounded text-[9px] font-mono hover:bg-primary/30"
@@ -422,7 +422,7 @@ export default function DashboardPage() {
                   
                   {/* Hover Swap Indicator */}
                   <div className="absolute inset-0 bg-background/60 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <div className="flex items-center gap-2 text-white/90">
+                    <div className="flex items-center gap-2 text-foreground">
                       <ArrowRightLeft className="w-5 h-5" />
                       <span className="text-xs font-bold tracking-widest">SWAP FEEDS</span>
                     </div>
@@ -433,14 +433,14 @@ export default function DashboardPage() {
             </div>
 
             {/* 2D Navigation Map Panel */}
-            <div ref={mapPanelRef} className={`bg-card/20 backdrop-blur-md border border-white/5 rounded-xl p-3 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] flex flex-col transition-all duration-300 ${!collapsed.map ? 'flex-1 min-h-0 overflow-y-auto' : ''}`}>
-              <div className="flex items-center justify-between text-gray-300 cursor-pointer select-none mb-1" onClick={() => toggleCollapse('map')}>
+            <div ref={mapPanelRef} className={`bg-card backdrop-blur-md border border-card-border rounded-xl p-3 shadow-sm flex flex-col transition-all duration-300 pointer-events-auto ${!collapsed.map ? 'flex-1 min-h-0 overflow-y-auto' : ''}`}>
+              <div className="flex items-center justify-between text-muted-foreground cursor-pointer select-none mb-1" onClick={() => toggleCollapse('map')}>
                 <h2 className="text-sm font-bold tracking-wide flex items-center gap-2">
                   <svg className="w-4 h-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
                   2D Navigation Map
                 </h2>
                 <div className="flex items-center gap-2">
-                  {collapsed.map ? <ChevronDown className="w-4 h-4 text-gray-500" /> : <ChevronUp className="w-4 h-4 text-gray-500" />}
+                  {collapsed.map ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronUp className="w-4 h-4 text-muted-foreground" />}
                 </div>
               </div>
 

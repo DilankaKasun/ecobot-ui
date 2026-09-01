@@ -10,7 +10,7 @@ const ARM_TONE: Record<string, string> = {
   scanning: 'text-teal-300 bg-teal-500/15 border-teal-500/40',
   recovering: 'text-amber-300 bg-amber-500/15 border-amber-500/40',
   failed: 'text-rose-300 bg-rose-500/15 border-rose-500/40',
-  idle: 'text-gray-400 bg-gray-500/10 border-gray-500/30',
+  idle: 'text-muted-foreground bg-gray-500/10 border-gray-500/30',
 };
 
 const MISSION_TONE: Record<string, string> = {
@@ -32,20 +32,20 @@ export const ScanPanel: React.FC = () => {
     ? scanner.viewpoint / scanner.total_viewpoints : 0;
 
   return (
-    <div className="bg-card border border-card-border rounded-xl p-4 shadow-lg space-y-3">
+    <div className="bg-card border border-card-border rounded-xl p-4 shadow-sm space-y-3">
 
       {/* ---- arm + mission node state ---- */}
       <div className="flex items-center gap-2 flex-wrap">
-        <Bot className="w-4 h-4 text-gray-400" />
+        <Bot className="w-4 h-4 text-muted-foreground" />
         <span className={`px-2.5 py-1 rounded-lg border font-mono text-[11px] font-bold ${armTone}`}>
           ARM {(scanner?.status ?? 'unknown').toUpperCase()}
         </span>
         <span className={`px-2.5 py-1 rounded-lg border font-mono text-[11px] font-bold ${
-          MISSION_TONE[status.status] ?? 'text-gray-400 bg-gray-500/10 border-gray-500/30'}`}>
+          MISSION_TONE[status.status] ?? 'text-muted-foreground bg-gray-500/10 border-gray-500/30'}`}>
           MISSION {status.status}
         </span>
         {scanner && scanner.total_viewpoints > 0 && (
-          <span className="font-mono text-[11px] text-gray-400">
+          <span className="font-mono text-[11px] text-muted-foreground">
             viewpoint {scanner.viewpoint}/{scanner.total_viewpoints}
           </span>
         )}
@@ -65,8 +65,8 @@ export const ScanPanel: React.FC = () => {
           { l: 'Viewpoint', v: scanner?.current_label || '—' },
         ].map((c) => (
           <div key={c.l} className="bg-black/30 rounded-lg px-2.5 py-2">
-            <div className="text-[9px] text-gray-500 uppercase tracking-wide">{c.l}</div>
-            <div className="font-mono text-sm font-bold text-gray-100 truncate">{c.v}</div>
+            <div className="text-[9px] text-muted-foreground uppercase tracking-wide">{c.l}</div>
+            <div className="font-mono text-sm font-bold text-foreground truncate">{c.v}</div>
           </div>
         ))}
       </div>
@@ -95,8 +95,8 @@ export const ScanPanel: React.FC = () => {
       {/* ---- shots ---- */}
       <div>
         <div className="flex items-center gap-1.5 mb-1.5">
-          <Camera className="w-3.5 h-3.5 text-gray-500" />
-          <span className="text-[9px] text-gray-500 uppercase tracking-wide">
+          <Camera className="w-3.5 h-3.5 text-muted-foreground" />
+          <span className="text-[9px] text-muted-foreground uppercase tracking-wide">
             Captured viewpoints
           </span>
         </div>
@@ -124,8 +124,8 @@ export const ScanPanel: React.FC = () => {
       {/* ---- report ---- */}
       <div>
         <div className="flex items-center gap-1.5 mb-1.5">
-          <FileText className="w-3.5 h-3.5 text-gray-500" />
-          <span className="text-[9px] text-gray-500 uppercase tracking-wide">
+          <FileText className="w-3.5 h-3.5 text-muted-foreground" />
+          <span className="text-[9px] text-muted-foreground uppercase tracking-wide">
             Plant health
           </span>
         </div>
@@ -135,8 +135,8 @@ export const ScanPanel: React.FC = () => {
               .filter(([k, v]) => k !== 'timestamp' && v !== null && v !== '')
               .map(([k, v]) => (
                 <div key={k} className="font-mono text-[10px] flex gap-2">
-                  <span className="text-gray-500 w-24 shrink-0">{k}</span>
-                  <span className="text-gray-200 break-words">
+                  <span className="text-muted-foreground w-24 shrink-0">{k}</span>
+                  <span className="text-foreground break-words">
                     {typeof v === 'object' ? JSON.stringify(v) : String(v)}
                   </span>
                 </div>

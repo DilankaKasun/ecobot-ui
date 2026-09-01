@@ -7,6 +7,7 @@ import { AuthGate } from '@/components/auth/AuthGate';
 import { Navbar } from '@/components/layout/Navbar';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { MobileNav } from '@/components/layout/MobileNav';
+import { ThemeProvider } from '@/components/ThemeProvider';
 
 export const metadata: Metadata = {
   // Routes set their own title; each one lands in the template below.
@@ -29,29 +30,31 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
-      <body className="bg-background text-gray-100 h-screen w-screen overflow-hidden flex flex-col" suppressHydrationWarning>
-        <AuthProvider>
-          <RosProvider>
-            <LiveKitProvider>
-              <AuthGate>
-                <div className="flex flex-col w-full h-full relative">
-                  <Navbar />
-                  <div className="flex flex-1 min-h-0">
-                    <Sidebar />
-                    {/* min-h-0 above + this scroll container keep `h-full` pages
-                        (/, /live, /map3d) bounded to the viewport while letting
-                        taller scrolling pages (/arm, /mission) scroll. */}
-                    <main className="flex-1 w-full h-full overflow-y-auto overflow-x-hidden p-4 md:p-6 pb-24 md:pb-6">
-                      {children}
-                    </main>
+    <html lang="en" suppressHydrationWarning>
+      <body className="bg-background text-foreground h-screen w-screen overflow-hidden flex flex-col" suppressHydrationWarning>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+          <AuthProvider>
+            <RosProvider>
+              <LiveKitProvider>
+                <AuthGate>
+                  <div className="flex flex-col w-full h-full relative">
+                    <Navbar />
+                    <div className="flex flex-1 min-h-0">
+                      <Sidebar />
+                      {/* min-h-0 above + this scroll container keep `h-full` pages
+                          (/, /live, /map3d) bounded to the viewport while letting
+                          taller scrolling pages (/arm, /mission) scroll. */}
+                      <main className="flex-1 w-full h-full overflow-y-auto overflow-x-hidden p-4 md:p-6 pb-24 md:pb-6">
+                        {children}
+                      </main>
+                    </div>
+                    <MobileNav />
                   </div>
-                  <MobileNav />
-                </div>
-              </AuthGate>
-            </LiveKitProvider>
-          </RosProvider>
-        </AuthProvider>
+                </AuthGate>
+              </LiveKitProvider>
+            </RosProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

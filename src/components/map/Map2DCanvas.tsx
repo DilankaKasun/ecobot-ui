@@ -143,28 +143,28 @@ export const Map2DCanvas: React.FC = () => {
   return (
     <div className="bg-card border border-card-border rounded-xl p-4 flex flex-col justify-between">
       <div className="flex items-center justify-between mb-3 text-xs">
-        <div className="flex items-center gap-1.5 font-semibold text-gray-200">
+        <div className="flex items-center gap-1.5 font-semibold text-foreground">
           <MapPin className="w-4 h-4 text-primary" />
           <span>2D Map & AMCL Localization</span>
         </div>
         <div className="flex items-center gap-1">
           <button
             onClick={() => setScale((s) => Math.min(80, s + 10))}
-            className="p-1 rounded bg-card-border text-gray-400 hover:text-white"
+            className="p-1 rounded bg-card-border text-muted-foreground hover:text-white"
             title="Zoom In"
           >
             <ZoomIn className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => setScale((s) => Math.max(10, s - 10))}
-            className="p-1 rounded bg-card-border text-gray-400 hover:text-white"
+            className="p-1 rounded bg-card-border text-muted-foreground hover:text-white"
             title="Zoom Out"
           >
             <ZoomOut className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => setTrace([])}
-            className="p-1 rounded bg-card-border text-gray-400 hover:text-white"
+            className="p-1 rounded bg-card-border text-muted-foreground hover:text-white"
             title="Clear Trace"
           >
             <RotateCcw className="w-3.5 h-3.5" />
@@ -176,7 +176,7 @@ export const Map2DCanvas: React.FC = () => {
         <canvas ref={canvasRef} width={400} height={240} className="w-full h-auto block" />
       </div>
 
-      <div className="flex items-center justify-between text-[11px] text-gray-500 mt-3 font-mono">
+      <div className="flex items-center justify-between text-[11px] text-muted-foreground mt-3 font-mono">
         <span>Scale: {(1 / (scale / 100)).toFixed(0)} cm/grid</span>
         {detections.length > 0 && <span className="text-pink-400 font-semibold flex items-center gap-1"><Target className="w-3 h-3" /> {detections.length} objects</span>}
         <span>Points: {trace.length}</span>
