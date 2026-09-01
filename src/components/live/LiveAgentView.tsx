@@ -145,7 +145,7 @@ export const LiveAgentView: React.FC = () => {
       <div className="order-1 flex min-h-0 min-w-0 flex-1 flex-col gap-3">
         {/* stage fills the available area; the box inside keeps 16:9 */}
         <div className="relative flex min-h-0 w-full flex-1 items-center justify-center">
-        <div className="relative aspect-video w-full max-h-full overflow-hidden rounded-xl border border-white/5 bg-black/60 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)]">
+        <div className="relative aspect-video w-full max-h-full overflow-hidden rounded-xl border border-card-border bg-black/60 shadow-sm">
           {/* video — absolutely positioned so its intrinsic size never grows the panel */}
           <video
             ref={videoRef}
@@ -160,8 +160,8 @@ export const LiveAgentView: React.FC = () => {
           {noFeed && (
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center gap-2 px-6 bg-background/80">
               <VideoOff className="w-10 h-10 text-danger/60" />
-              <p className="text-sm font-semibold text-gray-200">No robot camera available for the agent</p>
-              <p className="text-xs text-gray-500 max-w-sm">
+              <p className="text-sm font-semibold text-foreground">No robot camera available for the agent</p>
+              <p className="text-xs text-muted-foreground max-w-sm">
                 The Live Agent sees the robot through LiveKit WebRTC tracks. Connect LiveKit
                 {lkConnected ? ' and wait for a camera track to publish' : ' from the Configuration page'} to
                 give the agent eyes.
@@ -176,7 +176,7 @@ export const LiveAgentView: React.FC = () => {
                 <Radio className="w-2.5 h-2.5 animate-pulse" />
                 AGENT VIEW
               </span>
-              <span className="bg-black/60 backdrop-blur-sm border border-white/10 text-gray-200 font-mono text-[10px] px-2 py-0.5 rounded-md">
+              <span className="bg-black/60 backdrop-blur-sm border border-card-border text-foreground font-mono text-[10px] px-2 py-0.5 rounded-md">
                 {activeSource.label}
               </span>
             </div>
@@ -191,7 +191,7 @@ export const LiveAgentView: React.FC = () => {
                 ? 'Only one robot camera is available'
                 : 'Switch which camera the agent sees'
             }
-            className="absolute top-3 right-3 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-black/60 hover:bg-black/80 text-gray-200 border border-white/10 backdrop-blur-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="absolute top-3 right-3 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-black/60 hover:bg-black/80 text-foreground border border-card-border backdrop-blur-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <SwitchCamera className="w-4 h-4" />
             <span className="hidden sm:inline">Switch Camera</span>
@@ -205,7 +205,7 @@ export const LiveAgentView: React.FC = () => {
                   ? 'bg-danger/15 border-danger/40 text-danger'
                   : connected
                     ? 'bg-primary/15 border-primary/40 text-primary'
-                    : 'bg-black/60 border-white/10 text-gray-300'
+                    : 'bg-black/60 border-card-border text-muted-foreground'
               }`}
             >
               {busy && <Loader2 className="w-3 h-3 animate-spin" />}
@@ -246,7 +246,7 @@ export const LiveAgentView: React.FC = () => {
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
                   muted
                     ? 'bg-danger/20 border-danger/40 text-danger'
-                    : 'bg-card/40 border-white/10 text-gray-200 hover:bg-white/5'
+                    : 'bg-card/40 border-card-border text-foreground hover:bg-white/5'
                 }`}
               >
                 {muted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
@@ -272,10 +272,10 @@ export const LiveAgentView: React.FC = () => {
       </div>
 
       {/* --- RIGHT: transcript — fills the width the video panel doesn't use --- */}
-      <div className="order-2 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-white/5 bg-card/20 backdrop-blur-md shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] max-h-[32vh] lg:max-h-none lg:min-w-[260px]">
-        <div className="px-4 py-3 border-b border-white/5 flex items-center gap-2">
+      <div className="order-2 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-card-border bg-card backdrop-blur-md shadow-sm max-h-[32vh] lg:max-h-none lg:min-w-[260px]">
+        <div className="px-4 py-3 border-b border-card-border flex items-center gap-2">
           <Bot className="w-4 h-4 text-primary" />
-          <h2 className="text-sm font-bold text-gray-100">Conversation</h2>
+          <h2 className="text-sm font-bold text-foreground">Conversation</h2>
         </div>
         <div
           ref={transcriptScrollRef}
@@ -283,14 +283,14 @@ export const LiveAgentView: React.FC = () => {
           className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 space-y-3 text-sm"
         >
           {transcript.length === 0 && !partialOperator && !partialAgent && (
-            <p className="text-xs text-gray-500 leading-relaxed">
+            <p className="text-xs text-muted-foreground leading-relaxed">
               Start the session, then just talk. Ask the agent what it sees, where obstacles are, or to
-              identify a plant. Use <span className="text-gray-300 font-semibold">Switch Camera</span> to
+              identify a plant. Use <span className="text-muted-foreground font-semibold">Switch Camera</span> to
               change its point of view.
             </p>
           )}
           {transcript.map((entry) => (
-            <div key={entry.id} className={entry.role === 'agent' ? 'text-gray-200' : 'text-primary'}>
+            <div key={entry.id} className={entry.role === 'agent' ? 'text-foreground' : 'text-primary'}>
               <span className="block text-[10px] font-mono uppercase tracking-wider opacity-60 mb-0.5">
                 {entry.role === 'agent' ? 'EcoBot Copilot' : 'Operator'}
               </span>
@@ -306,7 +306,7 @@ export const LiveAgentView: React.FC = () => {
             </div>
           )}
           {partialAgent && (
-            <div className="text-gray-300/80">
+            <div className="text-muted-foreground/80">
               <span className="block text-[10px] font-mono uppercase tracking-wider opacity-60 mb-0.5">
                 EcoBot Copilot
               </span>

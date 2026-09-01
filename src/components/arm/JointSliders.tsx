@@ -10,7 +10,7 @@ export const JointSliders: React.FC = () => {
   const { joints, setJointAngle, homeArm } = useArmControl();
 
   return (
-    <div className="bg-card border border-card-border rounded-xl p-5 shadow-lg">
+    <div className="bg-card border border-card-border rounded-xl p-5 shadow-sm">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Sliders className="w-5 h-5 text-blue-400" />
@@ -18,7 +18,7 @@ export const JointSliders: React.FC = () => {
         </div>
         <button
           onClick={homeArm}
-          className="flex items-center gap-1.5 px-3 py-1 bg-card-border hover:bg-gray-700 text-gray-200 rounded-lg text-xs font-semibold transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1 bg-card-border hover:bg-gray-700 text-foreground rounded-lg text-xs font-semibold transition-colors"
         >
           <RotateCcw className="w-3.5 h-3.5" />
           Home Position
@@ -33,11 +33,11 @@ export const JointSliders: React.FC = () => {
           return (
             <div key={j.name} className="space-y-1.5">
               <div className="flex justify-between text-xs font-medium">
-                <span className="text-gray-300">{j.label}</span>
+                <span className="text-muted-foreground">{j.label}</span>
                 <span className="font-mono text-blue-400 font-bold">{currentVal}°</span>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-[11px] text-gray-500 font-mono w-6 text-right">{j.min}°</span>
+                <span className="text-[11px] text-muted-foreground font-mono w-6 text-right">{j.min}°</span>
                 <input
                   type="range"
                   min={j.min}
@@ -47,7 +47,7 @@ export const JointSliders: React.FC = () => {
                   onChange={(e) => setJointAngle(jointKey, parseInt(e.target.value))}
                   className="flex-1 accent-blue-500 h-2 bg-background rounded-lg appearance-none cursor-pointer"
                 />
-                <span className="text-[11px] text-gray-500 font-mono w-8">{j.max}°</span>
+                <span className="text-[11px] text-muted-foreground font-mono w-8">{j.max}°</span>
               </div>
             </div>
           );

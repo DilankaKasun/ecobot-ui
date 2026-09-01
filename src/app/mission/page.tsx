@@ -32,13 +32,18 @@ export default function MissionPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-4">
-        <h2 className="text-lg font-bold text-white">Plant Run</h2>
+        <div>
+          <h2 className="text-lg md:text-xl font-bold text-foreground">Plant Run</h2>
+          <p className="text-xs text-muted-foreground mt-1">
+            Execute autonomous plant inspection and data collection missions.
+          </p>
+        </div>
 
         <div className="flex items-center gap-2 shrink-0">
           {!showForward && (
             <button
               onClick={() => setShowForward(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-card border border-card-border text-xs font-semibold text-gray-300 hover:text-white hover:border-primary/40 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-card border border-card-border text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
             >
               <Camera className="w-3.5 h-3.5" />
               Show forward camera
@@ -47,7 +52,7 @@ export default function MissionPage() {
           {!showWrist && (
             <button
               onClick={() => setShowWrist(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-card border border-card-border text-xs font-semibold text-gray-300 hover:text-white hover:border-primary/40 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-card border border-card-border text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
             >
               <Camera className="w-3.5 h-3.5" />
               Show wrist camera

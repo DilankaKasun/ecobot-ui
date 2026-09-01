@@ -165,16 +165,16 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
   const isMock = robotHost === 'mock' || streamHost === 'mock';
 
   return (
-    <div className="bg-card border border-card-border rounded-xl overflow-hidden shadow-lg flex flex-col">
+    <div className="bg-card border border-card-border rounded-xl overflow-hidden shadow-sm flex flex-col">
       <div className="px-4 py-2.5 bg-background/50 border-b border-card-border flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <Camera className="w-4 h-4 text-blue-400 shrink-0" />
-          <h3 className="font-semibold text-sm text-gray-200">{title}</h3>
+          <h3 className="font-semibold text-sm text-foreground">{title}</h3>
         </div>
 
         <div className="flex items-center gap-1.5 flex-wrap">
           {streamOptions && streamOptions.length > 0 && (
-            <div className="flex items-center bg-black/40 p-0.5 rounded-lg border border-card-border">
+            <div className="flex items-center bg-muted p-0.5 rounded-lg border border-card-border">
               {streamOptions.map((opt, idx) => (
                 <button
                   key={opt.label}
@@ -182,7 +182,7 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
                   className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all ${
                     selectedOptionIndex === idx
                       ? 'bg-blue-600 text-white shadow-sm'
-                      : 'text-gray-400 hover:text-gray-200'
+                      : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   {opt.label}
@@ -195,7 +195,7 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
             <button
               onClick={() => setShowOverlays((v) => !v)}
               className={`p-1 px-1.5 rounded text-[11px] font-semibold flex items-center gap-1 transition-colors ${
-                showOverlays ? 'bg-primary/20 text-primary border border-primary/40' : 'text-gray-400 hover:text-white'
+                showOverlays ? 'bg-primary/20 text-primary border border-primary/40' : 'text-muted-foreground hover:text-white'
               }`}
               title="Toggle AI Detection Overlays"
             >
@@ -206,7 +206,7 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
 
           <button
             onClick={handleRefresh}
-            className="p-1 rounded text-gray-400 hover:text-white hover:bg-card-border transition-colors"
+            className="p-1 rounded text-muted-foreground hover:text-white hover:bg-card-border transition-colors"
             title="Reconnect video stream (uses LiveKit WebRTC when available)"
           >
             <RefreshCw className="w-3.5 h-3.5" />
@@ -214,7 +214,7 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
 
           <button
             onClick={toggleFullscreen}
-            className="p-1 rounded text-gray-400 hover:text-white hover:bg-card-border transition-colors"
+            className="p-1 rounded text-muted-foreground hover:text-white hover:bg-card-border transition-colors"
             title="Fullscreen (starts AI plant scanning on this feed)"
           >
             <Maximize2 className="w-3.5 h-3.5" />
@@ -224,7 +224,7 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
 
       <div
         ref={feedRef}
-        className={`relative bg-black flex items-center justify-center overflow-hidden [&:fullscreen]:aspect-auto [&:fullscreen]:w-screen [&:fullscreen]:h-screen ${
+        className={`relative bg-muted dark:bg-black flex items-center justify-center overflow-hidden [&:fullscreen]:aspect-auto [&:fullscreen]:w-screen [&:fullscreen]:h-screen ${
           aspectRatio === 'video' ? 'aspect-video' : 'aspect-square'
         }`}
       >
@@ -234,7 +234,7 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
             <div className="flex flex-col items-center gap-2 z-10 text-primary/80">
               <Camera className="w-8 h-8 opacity-60 animate-pulse" />
               <span className="text-xs font-mono tracking-widest font-bold">MOCK VIDEO STREAM ACTIVE</span>
-              <span className="text-[10px] font-mono text-gray-400">{title} • Port {activePort}</span>
+              <span className="text-[10px] font-mono text-muted-foreground">{title} • Port {activePort}</span>
             </div>
           </div>
         ) : streamMode === 'livekit' && matchingLiveKitTrack ? (
@@ -247,7 +247,7 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
             trackName={activeLivekitTrackName || title}
           />
         ) : streamError ? (
-          <div className="flex flex-col items-center gap-2 text-gray-300 text-xs p-4 text-center max-w-sm">
+          <div className="flex flex-col items-center gap-2 text-muted-foreground text-xs p-4 text-center max-w-sm">
             {isHttpsPage ? (
               <ShieldAlert className="w-7 h-7 text-amber-400" />
             ) : (
@@ -256,11 +256,11 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
             <span className="font-semibold text-amber-200">Stream Blocked or Offline (Port {activePort})</span>
 
             {isHttpsPage ? (
-              <div className="space-y-2 text-left bg-black/60 border border-amber-500/30 p-3 rounded-lg text-[11px]">
+              <div className="space-y-2 text-left bg-muted border border-amber-500/30 p-3 rounded-lg text-[11px]">
                 <div className="flex items-center justify-between font-semibold text-amber-300">
                   <span>How to Allow Video Stream in Chrome/Edge:</span>
                 </div>
-                <ol className="list-decimal list-inside space-y-1 text-gray-300 text-[10.5px]">
+                <ol className="list-decimal list-inside space-y-1 text-muted-foreground text-[10.5px]">
                   <li>Click the <strong>Site Settings / Lock icon</strong> next to URL in address bar.</li>
                   <li>Click <strong>Site settings</strong>.</li>
                   <li>Set <strong>Insecure content</strong> to <span className="text-emerald-400 font-bold">Allow</span>.</li>
@@ -268,7 +268,7 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
                 </ol>
               </div>
             ) : (
-              <span className="text-gray-400 text-[11px]">Ensure the video server (mjpg_streamer / ros_rtsp / LiveKit) is running on the robot host.</span>
+              <span className="text-muted-foreground text-[11px]">Ensure the video server (mjpg_streamer / ros_rtsp / LiveKit) is running on the robot host.</span>
             )}
 
             <div className="flex items-center gap-2 mt-1 flex-wrap justify-center">
@@ -284,7 +284,7 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
                   href={streamUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-2.5 py-1 bg-card-border hover:bg-gray-700 text-gray-300 rounded text-xs flex items-center gap-1"
+                  className="px-2.5 py-1 bg-card-border hover:bg-muted-foreground/20 text-muted-foreground rounded text-xs flex items-center gap-1"
                 >
                   <ExternalLink className="w-3 h-3" />
                   Open Direct

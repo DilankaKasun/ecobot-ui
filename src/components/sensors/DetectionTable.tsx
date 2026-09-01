@@ -12,7 +12,7 @@ export const DetectionTable: React.FC = () => {
     <div className="bg-card border border-card-border rounded-xl p-4 flex flex-col justify-between">
       <div>
         <div className="flex items-center justify-between mb-3 text-xs">
-          <div className="flex items-center gap-1.5 font-semibold text-gray-200">
+          <div className="flex items-center gap-1.5 font-semibold text-foreground">
             <Target className="w-4 h-4 text-blue-400" />
             <span>YOLOv8 Objects Detected</span>
           </div>
@@ -42,7 +42,7 @@ export const DetectionTable: React.FC = () => {
         <div className="overflow-x-auto max-h-48 overflow-y-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="text-gray-400 border-b border-card-border">
+              <tr className="text-muted-foreground border-b border-card-border">
                 <th className="pb-2 font-medium">Class</th>
                 <th className="pb-2 font-medium">Confidence</th>
                 <th className="pb-2 font-medium">Distance</th>
@@ -52,18 +52,18 @@ export const DetectionTable: React.FC = () => {
             <tbody className="divide-y divide-card-border/50">
               {detections.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="py-4 text-center text-gray-500">
+                  <td colSpan={4} className="py-4 text-center text-muted-foreground">
                     No objects detected in field of view
                   </td>
                 </tr>
               ) : (
                 detections.map((det, idx) => (
                   <tr key={idx} className="hover:bg-card-border/30 transition-colors">
-                    <td className="py-2 font-semibold text-gray-200 capitalize flex items-center gap-1.5">
+                    <td className="py-2 font-semibold text-foreground capitalize flex items-center gap-1.5">
                       <Scan className="w-3.5 h-3.5 text-blue-400" />
                       {det.class_name}
                     </td>
-                    <td className="py-2 font-mono text-gray-300">
+                    <td className="py-2 font-mono text-muted-foreground">
                       {(det.confidence * 100).toFixed(0)}%
                     </td>
                     <td className="py-2 font-mono text-emerald-400">
@@ -86,8 +86,8 @@ export const DetectionTable: React.FC = () => {
         </div>
       </div>
 
-      <div className="text-[11px] text-gray-500 mt-3 pt-2 border-t border-card-border flex items-center gap-1.5">
-        <AlertCircle className="w-3.5 h-3.5 text-gray-400" />
+      <div className="text-[11px] text-muted-foreground mt-3 pt-2 border-t border-card-border flex items-center gap-1.5">
+        <AlertCircle className="w-3.5 h-3.5 text-muted-foreground" />
         <span>Clicking &apos;Approach&apos; will automatically steer & park robot 40cm away.</span>
       </div>
     </div>

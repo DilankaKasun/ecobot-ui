@@ -32,10 +32,10 @@ export const MobileNav: React.FC = () => {
               key={item.href}
               href={item.href}
               className={`flex flex-col items-center justify-center gap-1 py-2.5 text-[10px] font-medium transition-colors ${
-                isActive ? 'text-blue-400' : 'text-gray-400 hover:text-gray-200'
+                isActive ? 'text-blue-400' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              <Icon className={`w-5 h-5 ${isActive ? 'text-blue-400' : 'text-gray-400'}`} />
+              <Icon className={`w-5 h-5 ${isActive ? 'text-blue-400' : 'text-muted-foreground'}`} />
               {item.label}
             </Link>
           );

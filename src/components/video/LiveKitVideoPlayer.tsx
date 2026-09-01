@@ -26,6 +26,10 @@ interface LiveKitVideoPlayerProps {
    * viewport coordinates. HUD panels steer around these.
    */
   avoidRects?: Rect[];
+  /**
+   * If true, runs the AI loop but suppresses the AR HUD bounding boxes on the video.
+   */
+  hideArOverlay?: boolean;
 }
 
 export const LiveKitVideoPlayer: React.FC<LiveKitVideoPlayerProps> = ({
@@ -37,6 +41,7 @@ export const LiveKitVideoPlayer: React.FC<LiveKitVideoPlayerProps> = ({
   enableAiVision = false,
   onPlantDetected,
   avoidRects,
+  hideArOverlay = false,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -59,18 +64,10 @@ export const LiveKitVideoPlayer: React.FC<LiveKitVideoPlayerProps> = ({
 
     // A new track starts unready, unless it is already painting by the time
     // these listeners go on.
+    // Note: We also attach onCanPlay/onPlaying directly to the video element
+    // below, as React event handlers are more reliable across remounts than
+    // addEventListener inside useEffect.
     setIsVideoReady(el.readyState >= 2);
-
-    el.addEventListener('loadeddata', markReady);
-    el.addEventListener('playing', markReady);
-    el.addEventListener('waiting', markWaiting);
-    el.addEventListener('emptied', markWaiting);
-    return () => {
-      el.removeEventListener('loadeddata', markReady);
-      el.removeEventListener('playing', markReady);
-      el.removeEventListener('waiting', markWaiting);
-      el.removeEventListener('emptied', markWaiting);
-    };
   }, [track]);
 
   // Track whether this feed is the one on screen fullscreen.
@@ -303,6 +300,10 @@ export const LiveKitVideoPlayer: React.FC<LiveKitVideoPlayerProps> = ({
         muted={isMuted}
         style={{ objectFit }}
         className="w-full h-full relative z-0"
+        onLoadedData={() => setIsVideoReady(true)}
+        onCanPlay={() => setIsVideoReady(true)}
+        onPlaying={() => setIsVideoReady(true)}
+        onTimeUpdate={() => setIsVideoReady(true)}
       />
       
       {!isVideoReady && <VideoLoading label="Connecting to camera" />}
@@ -314,7 +315,7 @@ export const LiveKitVideoPlayer: React.FC<LiveKitVideoPlayerProps> = ({
       />
 
       {/* DOM overlays for HUDs — one per detected plant, placed to avoid collisions */}
-      {isSegmenting &&
+      {isSegmenting && !hideArOverlay &&
         detectedItems.map((item, idx) =>
           placements[idx] ? (
             <PlantDetailsHUD key={item.id} plant={item} placement={placements[idx]} index={idx} />
@@ -349,7 +350,7 @@ export const LiveKitVideoPlayer: React.FC<LiveKitVideoPlayerProps> = ({
             <span>WebRTC &lt;100ms</span>
           </span>
           {trackName && (
-            <span className="bg-black/60 backdrop-blur-sm border border-white/10 text-gray-300 font-mono text-[10px] px-2 py-0.5 rounded-md">
+            <span className="bg-black/60 backdrop-blur-sm border border-card-border text-muted-foreground font-mono text-[10px] px-2 py-0.5 rounded-md">
               {trackName}
             </span>
           )}
@@ -370,7 +371,7 @@ export const LiveKitVideoPlayer: React.FC<LiveKitVideoPlayerProps> = ({
             className={`p-1.5 rounded-lg border transition-colors ${
               isSegmenting 
                 ? 'bg-cyan-500/20 border-cyan-400 text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.5)]' 
-                : 'bg-black/40 border-white/10 text-white/70 hover:bg-white/10 hover:text-white'
+                : 'bg-black/40 border-card-border text-white/70 hover:bg-white/10 hover:text-white'
             }`}
             title="Toggle AI Vision"
           >
@@ -379,14 +380,14 @@ export const LiveKitVideoPlayer: React.FC<LiveKitVideoPlayerProps> = ({
         )}
         <button
           onClick={() => setIsMuted(!isMuted)}
-          className="p-1.5 rounded-lg bg-black/60 hover:bg-black/80 text-gray-300 hover:text-white border border-white/10 transition-colors"
+          className="p-1.5 rounded-lg bg-black/60 hover:bg-black/80 text-muted-foreground hover:text-white border border-card-border transition-colors"
           title={isMuted ? 'Unmute' : 'Mute'}
         >
           {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
         </button>
         <button
           onClick={toggleFullscreen}
-          className="p-1.5 rounded-lg bg-black/60 hover:bg-black/80 text-gray-300 hover:text-white border border-white/10 transition-colors"
+          className="p-1.5 rounded-lg bg-black/60 hover:bg-black/80 text-muted-foreground hover:text-white border border-card-border transition-colors"
           title="Fullscreen"
         >
           <Maximize2 className="w-3.5 h-3.5" />

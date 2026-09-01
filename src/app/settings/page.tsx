@@ -92,13 +92,12 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="max-w-4xl space-y-6 pb-12">
+    <div className="w-full space-y-6 pb-12">
       <div>
-        <h2 className="text-lg md:text-xl font-bold text-white flex items-center gap-2">
-          <Settings className="w-5 h-5 text-blue-400" />
+        <h2 className="text-lg md:text-xl font-bold text-foreground">
           Dashboard Configuration
         </h2>
-        <p className="text-xs text-gray-400 mt-1">
+        <p className="text-xs text-muted-foreground mt-1">
           Configure network connection endpoints, LiveKit WebRTC, and target Jetson device settings.
         </p>
       </div>
@@ -111,8 +110,8 @@ export default function SettingsPage() {
       )}
 
       {/* Quick Presets */}
-      <div className="bg-card border border-card-border rounded-xl p-4 shadow-lg space-y-3">
-        <span className="text-xs font-semibold text-gray-300 flex items-center gap-1.5">
+      <div className="bg-card border border-card-border rounded-xl p-4 shadow-sm space-y-3">
+        <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
           <Sparkles className="w-3.5 h-3.5 text-primary" />
           Quick Connection Presets
         </span>
@@ -122,11 +121,11 @@ export default function SettingsPage() {
             onClick={() => applyPreset('localhost', 'localhost')}
             className="p-2.5 bg-background/60 hover:bg-card-border/60 border border-card-border rounded-lg text-left transition-colors cursor-pointer group"
           >
-            <div className="font-semibold text-gray-200 group-hover:text-primary flex items-center gap-1.5">
+            <div className="font-semibold text-foreground group-hover:text-primary flex items-center gap-1.5">
               <Laptop className="w-3.5 h-3.5" />
               <span>Local Dev (localhost)</span>
             </div>
-            <p className="text-[11px] text-gray-400 font-mono mt-0.5">ws://localhost:9090</p>
+            <p className="text-[11px] text-muted-foreground font-mono mt-0.5">ws://localhost:9090</p>
           </button>
 
           <button
@@ -134,11 +133,11 @@ export default function SettingsPage() {
             onClick={() => applyPreset(ROS_CONFIG.DEFAULT_LAN_IP, ROS_CONFIG.DEFAULT_LAN_IP)}
             className="p-2.5 bg-background/60 hover:bg-card-border/60 border border-card-border rounded-lg text-left transition-colors cursor-pointer group"
           >
-            <div className="font-semibold text-gray-200 group-hover:text-primary flex items-center gap-1.5">
+            <div className="font-semibold text-foreground group-hover:text-primary flex items-center gap-1.5">
               <Wifi className="w-3.5 h-3.5" />
               <span>Jetson LAN IP</span>
             </div>
-            <p className="text-[11px] text-gray-400 font-mono mt-0.5">{ROS_CONFIG.DEFAULT_LAN_IP}</p>
+            <p className="text-[11px] text-muted-foreground font-mono mt-0.5">{ROS_CONFIG.DEFAULT_LAN_IP}</p>
           </button>
 
           <button
@@ -146,30 +145,30 @@ export default function SettingsPage() {
             onClick={() => applyPreset('mock', 'mock')}
             className="p-2.5 bg-background/60 hover:bg-card-border/60 border border-card-border rounded-lg text-left transition-colors cursor-pointer group"
           >
-            <div className="font-semibold text-gray-200 group-hover:text-primary flex items-center gap-1.5">
+            <div className="font-semibold text-foreground group-hover:text-primary flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5" />
               <span>Offline Mock Mode</span>
             </div>
-            <p className="text-[11px] text-gray-400 font-mono mt-0.5">Synthetic Simulation</p>
+            <p className="text-[11px] text-muted-foreground font-mono mt-0.5">Synthetic Simulation</p>
           </button>
         </div>
       </div>
 
       {/* LiveKit WebRTC Configuration Card */}
-      <div className="bg-card border border-card-border rounded-xl p-5 shadow-lg space-y-4">
+      <div className="bg-card border border-card-border rounded-xl p-5 shadow-sm space-y-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-sm font-bold text-white">
+          <div className="flex items-center gap-2 text-sm font-bold text-foreground">
             <Radio className="w-4 h-4 text-primary animate-pulse" />
             <span>LiveKit WebRTC Connection (Ultra-Low Latency &lt;100ms)</span>
           </div>
           <span className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold ${
-            isLiveKitConnected ? 'bg-primary/20 text-primary border border-primary/40' : 'bg-card-border text-gray-400'
+            isLiveKitConnected ? 'bg-primary/20 text-primary border border-primary/40' : 'bg-card-border text-muted-foreground'
           }`}>
             {isLiveKitConnected ? `CONNECTED (${videoTracks.length} tracks)` : isLiveKitConnecting ? 'CONNECTING...' : 'DISCONNECTED'}
           </span>
         </div>
 
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-muted-foreground">
           LiveKit streams video tracks and telemetry from ROS 2 directly to browser WebRTC with adaptive bitrate and sub-second latency over the internet.
         </p>
 
@@ -181,35 +180,35 @@ export default function SettingsPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs text-gray-400 font-medium mb-1">LiveKit Server WebSocket URL</label>
+            <label className="block text-xs text-muted-foreground font-medium mb-1">LiveKit Server WebSocket URL</label>
             <input
               type="text"
               value={lkUrlInput}
               onChange={(e) => setLkUrlInput(e.target.value)}
               placeholder="wss://your-project.livekit.cloud"
-              className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-primary"
+              className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-foreground font-mono text-xs focus:outline-none focus:border-primary"
             />
           </div>
 
           <div>
-            <label className="block text-xs text-gray-400 font-medium mb-1">Room Name</label>
+            <label className="block text-xs text-muted-foreground font-medium mb-1">Room Name</label>
             <input
               type="text"
               value={lkRoomInput}
               onChange={(e) => setLkRoomInput(e.target.value)}
               placeholder="ecobot-teleop"
-              className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-primary"
+              className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-foreground font-mono text-xs focus:outline-none focus:border-primary"
             />
           </div>
 
           <div className="md:col-span-2">
-            <label className="block text-xs text-gray-400 font-medium mb-1">LiveKit Access Token (Optional if server API keys configured)</label>
+            <label className="block text-xs text-muted-foreground font-medium mb-1">LiveKit Access Token (Optional if server API keys configured)</label>
             <input
               type="password"
               value={lkTokenInput}
               onChange={(e) => setLkTokenInput(e.target.value)}
               placeholder="eyJhbGciOiJIUzI1NiIsIn..."
-              className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-primary"
+              className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-foreground font-mono text-xs focus:outline-none focus:border-primary"
             />
           </div>
         </div>
@@ -220,7 +219,7 @@ export default function SettingsPage() {
             onClick={handleLiveKitConnectToggle}
             className={`px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
               isLiveKitConnected
-                ? 'bg-rose-600/30 border border-rose-500/40 text-rose-300 hover:bg-rose-600/50'
+                ? 'bg-rose-500/20 border border-rose-500/40 text-rose-600 dark:text-rose-300 hover:bg-rose-500/30'
                 : 'bg-primary/20 border border-primary/40 text-primary hover:bg-primary/30'
             }`}
           >
@@ -246,7 +245,7 @@ export default function SettingsPage() {
               <HelpCircle className="w-4 h-4 text-amber-400" />
               <span>To Allow Local Video Streams in Chrome / Edge:</span>
             </div>
-            <ol className="list-decimal list-inside space-y-1 text-gray-300 text-[11.5px] pl-1">
+            <ol className="list-decimal list-inside space-y-1 text-muted-foreground text-[11.5px] pl-1">
               <li>Click the <strong>Site Settings / Lock icon</strong> next to the URL in the address bar.</li>
               <li>Click <strong>Site settings</strong>.</li>
               <li>Find <strong>Insecure content</strong> and set it to <span className="text-emerald-400 font-bold">Allow</span>.</li>
@@ -257,8 +256,8 @@ export default function SettingsPage() {
       )}
 
       {/* Target Jetson Host Card */}
-      <form onSubmit={handleSave} className="bg-card border border-card-border rounded-xl p-5 shadow-lg space-y-4">
-        <div className="flex items-center gap-2 text-sm font-bold text-white">
+      <form onSubmit={handleSave} className="bg-card border border-card-border rounded-xl p-5 shadow-sm space-y-4">
+        <div className="flex items-center gap-2 text-sm font-bold text-foreground">
           <Server className="w-4 h-4 text-blue-400" />
           <span>Robot Network Endpoints (ROS 2 Bridge & HTTP Streams)</span>
         </div>
@@ -266,18 +265,18 @@ export default function SettingsPage() {
         <div className="space-y-4">
           <div>
             <div className="flex justify-between items-center mb-1">
-              <label className="block text-xs text-gray-400 font-medium">1. ROS 2 Bridge WebSocket Endpoint</label>
-              <span className="text-[11px] text-gray-500 font-mono">Port: {ROS_CONFIG.ROSBRIDGE_PORT}</span>
+              <label className="block text-xs text-muted-foreground font-medium">1. ROS 2 Bridge WebSocket Endpoint</label>
+              <span className="text-[11px] text-muted-foreground font-mono">Port: {ROS_CONFIG.ROSBRIDGE_PORT}</span>
             </div>
             <input
               type="text"
               value={hostInput}
               onChange={(e) => setHostInput(e.target.value)}
               placeholder="e.g. localhost or 192.168.8.105 (LAN). Remote control uses LiveKit — no host needed."
-              className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-blue-500"
+              className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-foreground font-mono text-sm focus:outline-none focus:border-blue-500"
             />
             {resolvedRosUrl && (
-              <p className="text-[11px] font-mono text-gray-400 mt-1">
+              <p className="text-[11px] font-mono text-muted-foreground mt-1">
                 Resolved ROS Target: <span className="text-blue-300 font-semibold">{resolvedRosUrl}</span>
               </p>
             )}
@@ -285,17 +284,17 @@ export default function SettingsPage() {
 
           <div>
             <div className="flex justify-between items-center mb-1">
-              <label className="block text-xs text-gray-400 font-medium">2. Video Stream Host / IP / MJPEG Base URL</label>
-              <span className="text-[11px] text-gray-500 font-mono">Ports: 8081, 8085</span>
+              <label className="block text-xs text-muted-foreground font-medium">2. Video Stream Host / IP / MJPEG Base URL</label>
+              <span className="text-[11px] text-muted-foreground font-mono">Ports: 8081, 8085</span>
             </div>
             <input
               type="text"
               value={streamHostInput}
               onChange={(e) => setStreamHostInput(e.target.value)}
               placeholder="e.g. localhost or 192.168.8.105"
-              className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-blue-500"
+              className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-foreground font-mono text-sm focus:outline-none focus:border-blue-500"
             />
-            <p className="text-[11px] font-mono text-gray-400 mt-1">
+            <p className="text-[11px] font-mono text-muted-foreground mt-1">
               Used for MJPEG video stream URLs (e.g. <code className="text-blue-300 font-semibold">http://{streamHostInput || 'localhost'}:8081/stream.mjpg</code>)
             </p>
           </div>
@@ -309,9 +308,9 @@ export default function SettingsPage() {
               value={cameraSourceInput}
               onChange={(e) => setCameraSourceInput(e.target.value)}
               placeholder="http://192.168.8.105:8084/arm_camera.mjpg"
-              className="w-full bg-blue-900/20 border border-blue-500/30 rounded-lg px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-blue-400 placeholder:text-gray-500"
+              className="w-full bg-blue-900/20 border border-blue-500/30 rounded-lg px-3 py-2 text-foreground font-mono text-sm focus:outline-none focus:border-blue-400 placeholder:text-muted-foreground"
             />
-            <p className="text-[11px] font-mono text-gray-400 mt-1">
+            <p className="text-[11px] font-mono text-muted-foreground mt-1">
               Optional override: paste an MJPEG stream URL to feed the local YOLO detection backend.
             </p>
           </div>
@@ -330,7 +329,7 @@ export default function SettingsPage() {
 
       {/* Live Stream Test Previews */}
       <div className="space-y-3">
-        <h3 className="text-sm font-bold text-white flex items-center gap-2">
+        <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
           <Video className="w-4 h-4 text-purple-400" />
           Live Camera Stream Previews
         </h3>

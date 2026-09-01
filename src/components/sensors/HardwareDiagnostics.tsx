@@ -16,7 +16,7 @@ function statusTone(status?: string): { text: string; dot: string; badge: string
   if (['fail', 'fault', 'error', 'offline', 'failed', 'critical'].includes(s)) {
     return { text: 'text-rose-400', dot: 'bg-rose-500', badge: 'bg-rose-500/15 border-rose-500/30 text-rose-400' };
   }
-  return { text: 'text-gray-400', dot: 'bg-gray-500', badge: 'bg-gray-800 border-card-border text-gray-300' };
+  return { text: 'text-muted-foreground', dot: 'bg-gray-500', badge: 'bg-muted border-card-border text-muted-foreground' };
 }
 
 function overallBadge(overall?: string): string {
@@ -30,7 +30,7 @@ function overallBadge(overall?: string): string {
   if (['fail', 'fault', 'error', 'critical'].includes(s)) {
     return 'bg-rose-500/20 border border-rose-500/40 text-rose-400';
   }
-  return 'bg-gray-800 border border-card-border text-gray-300';
+  return 'bg-muted border border-card-border text-muted-foreground';
 }
 
 interface StatusRowProps {
@@ -43,9 +43,9 @@ const StatusRow: React.FC<StatusRowProps> = ({ label, status, detail }) => {
   const tone = statusTone(status);
   return (
     <div className="flex items-center justify-between py-1.5">
-      <span className="text-gray-400">{label}</span>
+      <span className="text-muted-foreground">{label}</span>
       <div className="flex items-center gap-2">
-        {detail && <span className="font-mono text-[11px] text-gray-500">{detail}</span>}
+        {detail && <span className="font-mono text-[11px] text-muted-foreground">{detail}</span>}
         <span className="flex items-center gap-1.5">
           <span className={`w-1.5 h-1.5 rounded-full ${tone.dot}`} />
           <span className={`font-mono text-[11px] font-bold uppercase ${tone.text}`}>{status || '--'}</span>
@@ -71,7 +71,7 @@ export const HardwareDiagnostics: React.FC = () => {
   return (
     <div className="bg-card border border-card-border rounded-xl p-4">
       <div className="flex items-center justify-between mb-3 text-xs">
-        <div className="flex items-center gap-1.5 font-semibold text-gray-200">
+        <div className="flex items-center gap-1.5 font-semibold text-foreground">
           <Stethoscope className="w-4 h-4 text-blue-400" />
           <span>Hardware Diagnostics</span>
         </div>
@@ -81,7 +81,7 @@ export const HardwareDiagnostics: React.FC = () => {
       </div>
 
       {!isConnected ? (
-        <div className="py-6 text-center text-gray-500 text-xs flex flex-col items-center gap-2">
+        <div className="py-6 text-center text-muted-foreground text-xs flex flex-col items-center gap-2">
           <Cpu className="w-6 h-6 text-gray-600" />
           <span>Connect to ROS to view hardware status</span>
         </div>
@@ -109,7 +109,7 @@ export const HardwareDiagnostics: React.FC = () => {
             disabled={checking}
             className={`mt-3 w-full py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
               checking
-                ? 'bg-gray-800 text-gray-400 cursor-wait'
+                ? 'bg-muted text-muted-foreground cursor-wait'
                 : 'bg-blue-600 hover:bg-blue-500 text-white'
             }`}
           >
@@ -118,7 +118,7 @@ export const HardwareDiagnostics: React.FC = () => {
           </button>
         </>
       ) : (
-        <div className="py-6 text-center text-gray-500 text-xs flex flex-col items-center gap-2">
+        <div className="py-6 text-center text-muted-foreground text-xs flex flex-col items-center gap-2">
           <Activity className="w-6 h-6 text-gray-600" />
           <span>Waiting for /ecobot/hardware_status...</span>
         </div>
@@ -142,7 +142,7 @@ export const HardwareDiagnostics: React.FC = () => {
       )}
 
       {hardware && !isConnected && (
-        <div className="mt-2 text-[11px] text-gray-500 flex items-center gap-1.5">
+        <div className="mt-2 text-[11px] text-muted-foreground flex items-center gap-1.5">
           <AlertTriangle className="w-3.5 h-3.5" />
           Cached status shown — robot offline.
         </div>
