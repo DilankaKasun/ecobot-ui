@@ -33,24 +33,24 @@ export const LoginScreen: React.FC = () => {
             <Bot className="w-7 h-7 text-primary" />
           </div>
           <h1 className="text-xl font-bold text-white">EcoBot Dashboard</h1>
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             Sign in to access robot control
           </p>
         </div>
 
         <form
           onSubmit={handleSubmit}
-          className="bg-card border border-card-border rounded-2xl p-6 shadow-xl space-y-4"
+          className="bg-card border border-card-border rounded-2xl p-6 shadow-sm space-y-4"
         >
           <div className="space-y-1.5">
             <label
               htmlFor="username"
-              className="block text-xs font-semibold text-gray-300"
+              className="block text-xs font-semibold text-muted-foreground"
             >
               Username
             </label>
             <div className="relative">
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
               <input
                 id="username"
                 type="text"
@@ -70,12 +70,12 @@ export const LoginScreen: React.FC = () => {
           <div className="space-y-1.5">
             <label
               htmlFor="password"
-              className="block text-xs font-semibold text-gray-300"
+              className="block text-xs font-semibold text-muted-foreground"
             >
               Password
             </label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
               <input
                 id="password"
                 type={showPassword ? 'text' : 'password'}
@@ -92,7 +92,7 @@ export const LoginScreen: React.FC = () => {
                 type="button"
                 onClick={() => setShowPassword((v) => !v)}
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-gray-500 hover:text-gray-300 transition-colors"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-muted-foreground hover:text-muted-foreground transition-colors"
               >
                 {showPassword ? (
                   <EyeOff className="w-4 h-4" />

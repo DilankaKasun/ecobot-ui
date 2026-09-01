@@ -85,7 +85,7 @@ export const CartesianControl: React.FC = () => {
   const sending = result.status === 'sending';
 
   return (
-    <div className="bg-card border border-card-border rounded-xl p-5 shadow-lg flex flex-col justify-between">
+    <div className="bg-card border border-card-border rounded-xl p-5 shadow-sm flex flex-col justify-between">
       <div>
         <div className="flex items-center gap-2 mb-4">
           <Crosshair className="w-5 h-5 text-purple-400" />
@@ -94,18 +94,18 @@ export const CartesianControl: React.FC = () => {
 
         {/* Current Pose Feedback */}
         <div className="p-3 bg-background/60 border border-card-border rounded-xl mb-4">
-          <div className="text-xs text-gray-400 mb-1 font-medium">Current Wrist Pose (FK)</div>
+          <div className="text-xs text-muted-foreground mb-1 font-medium">Current Wrist Pose (FK)</div>
           <div className="grid grid-cols-3 gap-2 font-mono text-sm font-bold text-center">
             <div className="bg-card-border/30 p-1.5 rounded">
-              <span className="text-gray-400 text-xs font-normal">X: </span>
+              <span className="text-muted-foreground text-xs font-normal">X: </span>
               <span className="text-blue-400">{(currentPose.x * 100).toFixed(1)}cm</span>
             </div>
             <div className="bg-card-border/30 p-1.5 rounded">
-              <span className="text-gray-400 text-xs font-normal">Y: </span>
+              <span className="text-muted-foreground text-xs font-normal">Y: </span>
               <span className="text-purple-400">{(currentPose.y * 100).toFixed(1)}cm</span>
             </div>
             <div className="bg-card-border/30 p-1.5 rounded">
-              <span className="text-gray-400 text-xs font-normal">Z: </span>
+              <span className="text-muted-foreground text-xs font-normal">Z: </span>
               <span className="text-emerald-400">{(currentPose.z * 100).toFixed(1)}cm</span>
             </div>
           </div>
@@ -114,7 +114,7 @@ export const CartesianControl: React.FC = () => {
         <form onSubmit={handleSendGoal} className="space-y-3">
           <div className="grid grid-cols-3 gap-2 text-xs">
             <div>
-              <label className="block text-gray-400 mb-1">Target X (Forward, cm)</label>
+              <label className="block text-muted-foreground mb-1">Target X (Forward, cm)</label>
               <input
                 type="number"
                 step="1"
@@ -126,7 +126,7 @@ export const CartesianControl: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-gray-400 mb-1">Target Y (Lateral, cm)</label>
+              <label className="block text-muted-foreground mb-1">Target Y (Lateral, cm)</label>
               <input
                 type="number"
                 step="1"
@@ -138,7 +138,7 @@ export const CartesianControl: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-gray-400 mb-1">Target Z (Height, cm)</label>
+              <label className="block text-muted-foreground mb-1">Target Z (Height, cm)</label>
               <input
                 type="number"
                 step="1"
@@ -184,7 +184,7 @@ export const CartesianControl: React.FC = () => {
         </form>
       </div>
 
-      <p className="text-[11px] text-gray-500 mt-4">
+      <p className="text-[11px] text-muted-foreground mt-4">
         Coordinates are measured from the arm base, with Z from the floor —
         the shoulder pivot sits at {(0.32 * 100).toFixed(0)}cm. Forward reach
         is negative X in this frame.

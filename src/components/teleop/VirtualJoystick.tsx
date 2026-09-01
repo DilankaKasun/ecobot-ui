@@ -98,8 +98,8 @@ export const VirtualJoystick: React.FC = () => {
 
   return (
     <div className="bg-card border border-card-border rounded-xl p-4 flex flex-col items-center">
-      <div className="w-full flex items-center justify-between mb-3 text-xs text-gray-400">
-        <div className="flex items-center gap-1.5 font-semibold text-gray-200">
+      <div className="w-full flex items-center justify-between mb-3 text-xs text-muted-foreground">
+        <div className="flex items-center gap-1.5 font-semibold text-foreground">
           <Compass className="w-4 h-4 text-blue-400" />
           <span>Virtual Joystick</span>
         </div>
@@ -126,7 +126,7 @@ export const VirtualJoystick: React.FC = () => {
         className="cursor-crosshair touch-none select-none rounded-full"
       />
 
-      <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 text-xs text-gray-400">
+      <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 text-xs text-muted-foreground">
         <div>
           <label className="block mb-1">Max Speed (m/s)</label>
           <input

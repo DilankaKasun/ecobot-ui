@@ -58,14 +58,14 @@ export const KeyboardTeleop: React.FC = () => {
   return (
     <div className="bg-card border border-card-border rounded-xl p-4 flex flex-col justify-between">
       <div className="flex items-center justify-between mb-3 text-xs">
-        <div className="flex items-center gap-1.5 font-semibold text-gray-200">
+        <div className="flex items-center gap-1.5 font-semibold text-foreground">
           <Keyboard className="w-4 h-4 text-blue-400" />
           <span>WASD Keyboard Drive</span>
         </div>
         <button
           onClick={() => setEnabled(!enabled)}
           className={`px-2 py-0.5 rounded text-[11px] font-medium ${
-            enabled ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-gray-800 text-gray-400'
+            enabled ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-muted text-muted-foreground'
           }`}
         >
           {enabled ? 'Active' : 'Muted'}
@@ -78,7 +78,7 @@ export const KeyboardTeleop: React.FC = () => {
           className={`h-10 rounded-lg flex items-center justify-center font-bold text-sm border transition-all ${
             activeKeys['w']
               ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_10px_rgba(59,130,246,0.6)]'
-              : 'bg-background border-card-border text-gray-400'
+              : 'bg-background border-card-border text-muted-foreground'
           }`}
         >
           W
@@ -88,7 +88,7 @@ export const KeyboardTeleop: React.FC = () => {
           className={`h-10 rounded-lg flex items-center justify-center font-bold text-sm border transition-all ${
             activeKeys['a']
               ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_10px_rgba(59,130,246,0.6)]'
-              : 'bg-background border-card-border text-gray-400'
+              : 'bg-background border-card-border text-muted-foreground'
           }`}
         >
           A
@@ -97,7 +97,7 @@ export const KeyboardTeleop: React.FC = () => {
           className={`h-10 rounded-lg flex items-center justify-center font-bold text-sm border transition-all ${
             activeKeys['s']
               ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_10px_rgba(59,130,246,0.6)]'
-              : 'bg-background border-card-border text-gray-400'
+              : 'bg-background border-card-border text-muted-foreground'
           }`}
         >
           S
@@ -106,15 +106,15 @@ export const KeyboardTeleop: React.FC = () => {
           className={`h-10 rounded-lg flex items-center justify-center font-bold text-sm border transition-all ${
             activeKeys['d']
               ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_10px_rgba(59,130,246,0.6)]'
-              : 'bg-background border-card-border text-gray-400'
+              : 'bg-background border-card-border text-muted-foreground'
           }`}
         >
           D
         </div>
       </div>
 
-      <div className="text-center text-[11px] text-gray-500 mt-2">
-        Press <span className="text-gray-300 font-mono">SPACE</span> for emergency stop
+      <div className="text-center text-[11px] text-muted-foreground mt-2">
+        Press <span className="text-muted-foreground font-mono">SPACE</span> for emergency stop
       </div>
     </div>
   );

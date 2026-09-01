@@ -16,15 +16,15 @@ export default function ArmStudioPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-lg md:text-xl font-bold text-white">Robotic Manipulator Studio</h2>
-          <p className="text-xs text-gray-400 mt-1">
+          <h2 className="text-lg md:text-xl font-bold text-foreground">Robotic Manipulator Studio</h2>
+          <p className="text-xs text-muted-foreground mt-1">
             4-DOF forward and inverse kinematics control with a live pose view and end-effector wrist camera.
           </p>
         </div>
         {!showCamera && (
           <button
             onClick={() => setShowCamera(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-card border border-card-border text-xs font-semibold text-gray-300 hover:text-white hover:border-primary/40 transition-colors shrink-0"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-card border border-card-border text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors shrink-0"
           >
             <Camera className="w-3.5 h-3.5" />
             Show wrist camera

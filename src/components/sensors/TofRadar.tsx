@@ -19,7 +19,7 @@ export const TofRadar: React.FC = () => {
   };
 
   const getStatusBadge = (val: number) => {
-    if (val <= 0) return <span className="text-[10px] text-gray-500">No Target</span>;
+    if (val <= 0) return <span className="text-[10px] text-muted-foreground">No Target</span>;
     if (val < 200) return <span className="text-[10px] px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-400 font-bold">CLOSE</span>;
     if (val < 400) return <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-400 font-medium">NEAR</span>;
     return <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-400 font-medium">CLEAR</span>;
@@ -30,7 +30,7 @@ export const TofRadar: React.FC = () => {
   return (
     <div className="bg-card border border-card-border rounded-xl p-4">
       <div className="flex items-center justify-between mb-3 text-xs">
-        <div className="flex items-center gap-1.5 font-semibold text-gray-200">
+        <div className="flex items-center gap-1.5 font-semibold text-foreground">
           <Radio className="w-4 h-4 text-blue-400" />
           <span>ESP32 ToF Proximity Sensors</span>
         </div>
@@ -51,7 +51,7 @@ export const TofRadar: React.FC = () => {
         {/* Left Sensor */}
         <div>
           <div className="flex justify-between items-center text-xs mb-1">
-            <span className="text-gray-400">Left ToF Sensor</span>
+            <span className="text-muted-foreground">Left ToF Sensor</span>
             <div className="flex items-center gap-2">
               {getStatusBadge(tof.left)}
               <span className="font-mono font-bold text-white">
@@ -70,7 +70,7 @@ export const TofRadar: React.FC = () => {
         {/* Right Sensor */}
         <div>
           <div className="flex justify-between items-center text-xs mb-1">
-            <span className="text-gray-400">Right ToF Sensor</span>
+            <span className="text-muted-foreground">Right ToF Sensor</span>
             <div className="flex items-center gap-2">
               {getStatusBadge(tof.right)}
               <span className="font-mono font-bold text-white">

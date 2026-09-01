@@ -228,14 +228,14 @@ export const PointCloud3D: React.FC = () => {
   }, [odom, followRobot]);
 
   return (
-    <div className="relative w-full h-[60vh] sm:h-[70vh] md:h-[calc(100vh-8rem)] rounded-2xl overflow-hidden border border-card-border shadow-2xl bg-background">
+    <div className="relative w-full h-[60vh] sm:h-[70vh] md:h-[calc(100vh-8rem)] rounded-2xl overflow-hidden border border-card-border shadow-sm bg-background">
       {/* 3D Canvas Mount */}
       <div ref={mountRef} className="w-full h-full cursor-grab active:cursor-grabbing touch-none select-none" />
 
       {/* Floating Control HUD */}
-      <div className="absolute top-3 sm:top-4 left-3 sm:left-4 right-3 sm:right-auto bg-card/90 backdrop-blur-md border border-card-border px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl shadow-xl space-y-2 text-xs">
+      <div className="absolute top-3 sm:top-4 left-3 sm:left-4 right-3 sm:right-auto bg-card/90 backdrop-blur-md border border-card-border px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl shadow-sm space-y-2 text-xs">
         <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2 font-bold text-white">
+          <div className="flex items-center gap-2 font-bold text-foreground">
             <Box className="w-4 h-4 text-blue-400 shrink-0" />
             <span className="text-[11px] sm:text-xs">Real-time 3D SLAM</span>
           </div>
@@ -245,7 +245,7 @@ export const PointCloud3D: React.FC = () => {
               className={`px-2 py-1 rounded text-[11px] font-semibold flex items-center gap-1.5 transition-all ${
                 followRobot
                   ? 'bg-blue-600 text-white'
-                  : 'bg-card-border text-gray-400 hover:text-white'
+                  : 'bg-card-border text-muted-foreground hover:text-foreground'
               }`}
             >
               <Eye className="w-3 h-3" />
@@ -253,19 +253,19 @@ export const PointCloud3D: React.FC = () => {
             </button>
           </div>
         </div>
-        <div className="font-mono text-[11px] text-gray-400 space-y-0.5">
+        <div className="font-mono text-[11px] text-muted-foreground space-y-0.5">
           <div className="flex items-center gap-2">
             <span>Pose:</span>
-            <span className="text-white">{odom.x.toFixed(2)}, {odom.y.toFixed(2)} m</span>
+            <span className="text-foreground">{odom.x.toFixed(2)}, {odom.y.toFixed(2)} m</span>
           </div>
           <div className="flex items-center gap-2">
             <span>Yaw:</span>
-            <span className="text-white">{odom.yaw.toFixed(1)}°</span>
+            <span className="text-foreground">{odom.yaw.toFixed(1)}°</span>
           </div>
         </div>
       </div>
 
-      <div className="hidden sm:block absolute bottom-4 right-4 bg-card/80 backdrop-blur-md border border-card-border px-3 py-1.5 rounded-lg text-[11px] text-gray-400 font-mono">
+      <div className="hidden sm:block absolute bottom-4 right-4 bg-card/80 backdrop-blur-md border border-card-border px-3 py-1.5 rounded-lg text-[11px] text-muted-foreground font-mono">
         Drag: Rotate | Scroll: Zoom
       </div>
     </div>

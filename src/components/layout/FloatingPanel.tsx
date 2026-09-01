@@ -155,23 +155,23 @@ export const FloatingPanel: React.FC<Props> = ({
     <div
       ref={panelRef}
       style={{ width, visibility: ready ? 'visible' : 'hidden' }}
-      className="fixed top-0 left-0 z-40 bg-card/95 backdrop-blur-md border border-card-border rounded-xl shadow-2xl overflow-hidden"
+      className="fixed top-0 left-0 z-40 bg-card/95 backdrop-blur-md border border-card-border rounded-xl shadow-sm overflow-hidden"
     >
       <div
         onPointerDown={startDrag}
         className="flex items-center justify-between gap-2 px-2.5 py-1.5 bg-background/70 border-b border-card-border cursor-grab active:cursor-grabbing select-none"
       >
         <div className="flex items-center gap-1.5 min-w-0">
-          <GripHorizontal className="w-3.5 h-3.5 text-gray-500 shrink-0" />
-          <span className="text-[11px] font-semibold text-gray-200 truncate">{title}</span>
+          <GripHorizontal className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+          <span className="text-[11px] font-semibold text-foreground truncate">{title}</span>
         </div>
         <div className="flex items-center gap-0.5 shrink-0">
           <button onClick={() => resize(-60)} title="Smaller"
-            className="p-1 rounded text-gray-500 hover:text-gray-200 hover:bg-card-border/60">
+            className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-card-border/60">
             <Minus className="w-3 h-3" />
           </button>
           <button onClick={() => resize(60)} title="Larger"
-            className="p-1 rounded text-gray-500 hover:text-gray-200 hover:bg-card-border/60">
+            className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-card-border/60">
             <Plus className="w-3 h-3" />
           </button>
           <button
@@ -188,13 +188,13 @@ export const FloatingPanel: React.FC<Props> = ({
               });
             }}
             title={collapsed ? 'Expand' : 'Collapse'}
-            className="px-1.5 py-1 rounded text-[10px] font-bold text-gray-500 hover:text-gray-200 hover:bg-card-border/60"
+            className="px-1.5 py-1 rounded text-[10px] font-bold text-muted-foreground hover:text-foreground hover:bg-card-border/60"
           >
             {collapsed ? '▢' : '—'}
           </button>
           {onClose && (
             <button onClick={onClose} title="Close"
-              className="p-1 rounded text-gray-500 hover:text-danger hover:bg-danger/10">
+              className="p-1 rounded text-muted-foreground hover:text-danger hover:bg-danger/10">
               <X className="w-3 h-3" />
             </button>
           )}
