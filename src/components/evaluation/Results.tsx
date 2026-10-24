@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { BarChart3, Table2 } from 'lucide-react';
+import { BarChart3, CheckCircle2, CircleDashed, Table2, XCircle } from 'lucide-react';
 import { RunChart } from './RunChart';
 import {
   CARDS, SECTIONS, formatStat, metricValue, type CardDef, type EvalData,
@@ -15,12 +15,14 @@ const ResultCard: React.FC<{
 }> = ({ card, data, results }) => {
   const [asTable, setAsTable] = useState(false);
   const [one, many] = card.noun ?? ['run', 'runs'];
-  const count = (n: number) => `${n} ${n === 1 ? one : many}`;
+  const count = (n: number, noun?: [string, string]) =>
+    `${n} ${n === 1 ? (noun ?? [one])[0] : (noun ?? [one, many])[1]}`;
   const values = card.metrics.map((m) => ({ m, v: metricValue(m, data, results) }));
   const [head, ...rest] = values;
   const points = card.chart?.points(data) ?? [];
   const note = card.note?.(data);
   const newer = Math.max(...values.map(({ v }) => v.newerRuns));
+  const verdict = card.meets ? card.meets(values.map(({ v }) => v.stat?.mean ?? null)) : null;
   // The chart's own mean, in the chart's unit, for the dashed reference line.
   const chartMean = points.length > 1
     ? points.reduce((a, p) => a + p.value, 0) / points.length
@@ -48,8 +50,22 @@ const ResultCard: React.FC<{
         </div>
         <div className="text-[10px] text-muted-foreground">
           {head.v.stat ? count(head.v.stat.n) : 'Nothing recorded yet'}
-          {head.v.stat && head.v.stat.std !== null && head.v.stat.n > 1 && ' · mean ± standard deviation'}
+          {head.v.stat && head.v.stat.std !== null && head.v.stat.n > 1 && ' · average ± spread'}
         </div>
+      </div>
+
+      {/* The bar the method sets, and — where it is a number — whether this
+          result clears it. Icon and words, never colour alone. */}
+      <div className="flex items-start gap-1.5 text-[11px] leading-snug">
+        {verdict === true ? <CheckCircle2 className="w-3.5 h-3.5 text-success shrink-0 mt-px" />
+          : verdict === false ? <XCircle className="w-3.5 h-3.5 text-warning shrink-0 mt-px" />
+          : <CircleDashed className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-px" />}
+        <span className="text-muted-foreground">
+          <span className="text-foreground font-medium">
+            {verdict === true ? 'Meets the goal. ' : verdict === false ? 'Short of the goal. ' : 'Goal: '}
+          </span>
+          {card.good}
+        </span>
       </div>
 
       {rest.length > 0 && (
@@ -58,7 +74,7 @@ const ResultCard: React.FC<{
             <div key={m.key} className="rounded-lg bg-muted/50 px-2.5 py-1.5 min-w-0">
               <dt className="text-[10px] text-muted-foreground">{m.label}</dt>
               <dd className="text-sm font-mono text-foreground">{formatStat(v.stat, m.unit, m.decimals)}</dd>
-              <dd className="text-[10px] text-muted-foreground">{v.stat ? count(v.stat.n) : 'Nothing recorded yet'}</dd>
+              <dd className="text-[10px] text-muted-foreground">{v.stat ? count(v.stat.n, m.noun) : 'Nothing recorded yet'}</dd>
             </div>
           ))}
         </dl>

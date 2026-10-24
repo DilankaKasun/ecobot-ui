@@ -114,15 +114,23 @@ export const TrialDetail: React.FC<{
                               {isTrue(v.reached)
                                 ? <span className="text-success">Yes</span>
                                 : <span className="text-danger">No</span>}
+                              {v.failure_reason && (
+                                <div className="text-[10px] text-muted-foreground max-w-[160px]">{v.failure_reason}</div>
+                              )}
                             </td>
                             <td className="py-1.5 pr-2 text-right font-mono">{cell(v, 'time_to_reach_s', ' s')}</td>
                             <td className="py-1.5 pr-2 text-right font-mono">{cell(v, 'parking_error_cm', ' cm')}</td>
                             <td className="py-1.5 pr-2 text-right font-mono">{cell(v, 'photos')}</td>
-                            <td className="py-1.5 pr-2"><Health value={v.gemini_health} /></td>
+                            <td className="py-1.5 pr-2">
+                              {v.gemini_name && <div className="text-foreground">{v.gemini_name}</div>}
+                              <Health value={v.gemini_health} />
+                            </td>
                             <td className="py-1.5">
-                              {v.true_health
-                                ? <Health value={v.true_health} />
-                                : isTrue(v.reached) ? <span className="text-warning">Needed</span> : <span className="text-muted-foreground">—</span>}
+                              {(v.is_plant ?? '').toLowerCase() === 'false'
+                                ? <span className="text-foreground">Not a plant</span>
+                                : v.true_health
+                                ? <>{v.true_name && <div className="text-foreground">{v.true_name}</div>}<Health value={v.true_health} /></>
+                                : v.gemini_health ? <span className="text-warning">Needed</span> : <span className="text-muted-foreground">—</span>}
                             </td>
                           </tr>
                         ))}
