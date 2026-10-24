@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Box, Cpu, Sprout, Settings, Eye, Bot } from 'lucide-react';
+import { LayoutDashboard, Box, Cpu, Sprout, Settings, Eye, Bot, ClipboardCheck } from 'lucide-react';
 
 const NAV_ITEMS = [
   { href: '/', label: 'Overview & Drive', icon: LayoutDashboard },
@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: '/arm', label: 'Arm & VLA Studio', icon: Cpu },
   { href: '/mission', label: 'Plant Mission AI', icon: Sprout },
   { href: '/live', label: 'Live AI Agent', icon: Bot },
+  { href: '/trials', label: 'Evaluation', icon: ClipboardCheck },
   { href: '/settings', label: 'Configuration', icon: Settings },
 ];
 

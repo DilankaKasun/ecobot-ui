@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Box, Cpu, Sprout, Settings, Bot } from 'lucide-react';
+import { LayoutDashboard, Box, Cpu, Sprout, Settings, Bot, ClipboardCheck } from 'lucide-react';
 
 const NAV_ITEMS = [
   { href: '/', label: 'Drive', icon: LayoutDashboard },
@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: '/arm', label: 'Arm', icon: Cpu },
   { href: '/mission', label: 'Mission', icon: Sprout },
   { href: '/live', label: 'Agent', icon: Bot },
+  { href: '/trials', label: 'Eval', icon: ClipboardCheck },
   { href: '/settings', label: 'Config', icon: Settings },
 ];
 
@@ -19,7 +20,7 @@ export const MobileNav: React.FC = () => {
 
   return (
     <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 border-t border-card-border bg-card/95 backdrop-blur-md pb-[env(safe-area-inset-bottom)]">
-      <div className="grid grid-cols-6">
+      <div className="grid grid-cols-7">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const isActive =

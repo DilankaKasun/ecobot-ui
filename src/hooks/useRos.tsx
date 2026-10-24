@@ -303,6 +303,18 @@ export const RosProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             data: JSON.stringify({ left: Math.random() * 0.5, right: Math.random() * 0.5 })
           });
         }
+        else if (topicName === ROS_CONFIG.TOPICS.TRIAL_STATUS) {
+          const elapsed = Math.floor(Date.now() / 1000) % 600;
+          callback({
+            data: JSON.stringify({
+              recording: true, trials_saved: 8, trial: 'trial_mock', elapsed_s: elapsed,
+              state: elapsed % 60 < 40 ? 'DRIVE' : 'SCAN', current_plant: `plant_${1 + Math.floor(elapsed / 120)}`,
+              plants_scanned: Math.floor(elapsed / 120), plants_not_reached: 0,
+              distance_driven_m: elapsed * 0.05, avoidance_interventions: 1,
+              photos: Math.floor(elapsed / 120) * 4, reports: Math.floor(elapsed / 120), frames: elapsed * 15,
+            })
+          });
+        }
         else if (topicName === ROS_CONFIG.TOPICS.DETECTIONS) {
           callback({
             data: JSON.stringify([
