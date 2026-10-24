@@ -68,9 +68,16 @@ export function trialsBaseUrl(robotHost: string): string {
   return `http://${host.split(':')[0]}:${ROS_CONFIG.TRIALS_HTTP_PORT}`;
 }
 
-/** True when this page cannot reach the trials server at all. */
-export function trialsBlockedByMixedContent(): boolean {
-  return typeof window !== 'undefined' && window.location.protocol === 'https:';
+/**
+ * True when the browser will refuse to read the trials server from this
+ * page: an HTTPS page fetching plain http. Loopback is exempt — browsers
+ * treat http://localhost as trustworthy, so a robot (or mock) on this
+ * machine is still reachable.
+ */
+export function trialsBlockedByMixedContent(robotHost: string): boolean {
+  if (typeof window === 'undefined' || window.location.protocol !== 'https:') return false;
+  const name = (robotHost || '').trim().replace(/^(https?|wss?):\/\//i, '').split(/[:/]/)[0].toLowerCase();
+  return !(name === 'localhost' || name.endsWith('.localhost') || name === '127.0.0.1' || name === '[::1]');
 }
 
 export function trialFileUrl(base: string, trial: string, file: string): string {
