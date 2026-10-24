@@ -35,7 +35,9 @@ export default function EvaluationPage() {
     trialCount: t.trials.length,
   }), [t.components, t.visits, t.captures, t.trials.length]);
 
-  const blocked = trialsBlockedByMixedContent();
+  // Only blame HTTPS once a read has actually failed; the guess can be wrong
+  // (e.g. a browser that exempts the host), and a working page needs no warning.
+  const blocked = !!t.error && trialsBlockedByMixedContent(t.robotHost);
 
   return (
     <div className="space-y-4 max-w-6xl mx-auto">
