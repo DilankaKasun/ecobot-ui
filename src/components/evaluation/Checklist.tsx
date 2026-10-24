@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { CheckCircle2, Circle, ListChecks, Radio, Sprout } from 'lucide-react';
+import { CheckCircle2, Circle, ListChecks, Radio, Ruler, Sprout } from 'lucide-react';
 import { CopyButton } from './CopyButton';
 import { CHECKLIST, SECTIONS, stepProgress, type EvalData } from '@/lib/evaluation';
 import type { TrialStatus } from '@/hooks/useTrialStatus';
@@ -83,8 +83,8 @@ export const Checklist: React.FC<{
       </div>
 
       <p className="text-[11px] text-muted-foreground leading-snug">
-        Each component test adds one row on the robot when it finishes; this list re-reads them every 20 seconds.
-        Runs the robot marked as not valid are not counted.
+        Each test adds one row on the robot when it finishes; this list re-reads them every 20 seconds.
+        Runs the robot marked as not valid are not counted, but failed runs are: a failure is still evidence.
       </p>
 
       {SECTIONS.map((sec) => (
@@ -108,6 +108,12 @@ export const Checklist: React.FC<{
                         </span>
                       </div>
                       <p className="text-[11px] text-muted-foreground mt-0.5">{step.what}</p>
+                      {step.measure && (
+                        <p className="flex items-start gap-1 text-[11px] text-foreground mt-0.5">
+                          <Ruler className="w-3 h-3 text-muted-foreground shrink-0 mt-0.5" />
+                          {step.measure}
+                        </p>
+                      )}
                       <div className="mt-1.5 h-1 rounded-full bg-muted overflow-hidden">
                         <div className={`h-full ${complete ? 'bg-success' : 'bg-primary'}`}
                              style={{ width: `${Math.min(100, (100 * done) / step.target)}%` }} />
@@ -132,7 +138,7 @@ export const Checklist: React.FC<{
                       <Link href="/mission"
                             className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-primary hover:underline">
                         <Sprout className="w-3.5 h-3.5" />
-                        Start a plant run from the Plant Run page
+                        Start a patrol from the Plant Run page
                       </Link>
                       <LiveTrial status={live.status} stale={live.stale} connected={live.isConnected} />
                     </div>

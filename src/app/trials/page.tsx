@@ -8,6 +8,7 @@ import { TrialList } from '@/components/evaluation/TrialList';
 import { TrialDetail } from '@/components/evaluation/TrialDetail';
 import { ExportPanel } from '@/components/evaluation/ExportPanel';
 import { GroundTruthPanel } from '@/components/evaluation/GroundTruthPanel';
+import { MethodPanel } from '@/components/evaluation/MethodPanel';
 import { useTrials } from '@/hooks/useTrials';
 import { useTrialExport } from '@/hooks/useTrialExport';
 import { useTrialStatus } from '@/hooks/useTrialStatus';
@@ -15,6 +16,7 @@ import { trialsBlockedByMixedContent } from '@/lib/trials-api';
 import type { EvalData } from '@/lib/evaluation';
 
 const JUMP = [
+  { id: 'method', label: 'How it works' },
   { id: 'checklist', label: 'Checklist' },
   { id: 'results', label: 'Results' },
   { id: 'trials', label: 'Trials' },
@@ -88,12 +90,13 @@ export default function EvaluationPage() {
         </p>
       ) : (
         <>
+          <MethodPanel />
           <Checklist data={data} live={live} />
           <Results data={data} results={ex.results} exportId={ex.latest?.export ?? null} />
           <TrialList trials={t.trials} onOpen={setOpenTrial} />
           <ExportPanel base={t.base} history={ex.history} running={ex.running} error={ex.error}
                        onRun={() => void ex.run()} onClear={ex.clearHistory} />
-          <GroundTruthPanel base={t.base} visits={t.visits} latestExport={ex.latest?.export ?? null}
+          <GroundTruthPanel base={t.base} visits={t.visits} captures={t.captures} latestExport={ex.latest?.export ?? null}
                             onOpenTrial={setOpenTrial} />
         </>
       )}

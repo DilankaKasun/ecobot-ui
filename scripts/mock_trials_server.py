@@ -9,7 +9,7 @@ the dashboard's Evaluation page without a robot.
 Serves the same routes as the robot:
 
     GET /trials                     {trials: [summary, ...]}, newest first
-    GET /components                 {components: {line|turn|...: [row, ...]}}
+    GET /components                 {components: {hardware|turn|line|...: [row, ...]}}
     GET /export                     builds a zip, returns {export, zip, cost, results}
     GET /exports/<export>/<file>    the zip, results.json, ground_truth.csv
     GET /trials/<trial>/<file>      summary.json, visits.csv, captures.csv,
@@ -153,8 +153,45 @@ def make_components():
             'majority_health': rng.choice(HEALTH),
         })
 
-    return {'line': line, 'turn': turn, 'square': square, 'goto': goto,
-            'obstacle': obstacle, 'map': map_rows, 'yolo': yolo, 'llm': llm}
+    checks = ['motors', 'wheel encoders', 'imu', 'realsense', 'tof left', 'tof right',
+              'arm servos', 'arm camera', 'rosbridge', 'gemini api']
+    hardware = [{
+        'time': stamp(90), 'checks': str(len(checks)), 'passed': str(len(checks) - 1),
+        'failed': '1', 'failures': 'tof right', 'valid': 'True',
+    }, {
+        # Re-run after reseating the cable: everything passes.
+        'time': stamp(91), 'checks': str(len(checks)), 'passed': str(len(checks)),
+        'failed': '0', 'failures': '', 'valid': 'True',
+    }]
+
+    tof = []
+    for i in range(10):
+        true_d = [0.10, 0.20, 0.30, 0.40, 0.50][i % 5]
+        read = true_d + rng.gauss(0.006, 0.008)
+        tof.append({
+            'time': stamp(100 + i), 'sensor': 'left' if i < 5 else 'right',
+            'true_distance_m': r(true_d, 2), 'reading_m': r(read, 3),
+            'error_cm': r(abs(read - true_d) * 100, 2), 'valid': 'True',
+        })
+
+    # Eight of ten scans done; one stalled.
+    arm = []
+    for i in range(8):
+        finished = i != 5
+        photos = 4 if finished else rng.randint(0, 2)
+        arm.append({
+            'time': stamp(120 + i), 'finished': tf(finished),
+            'duration_s': r(rng.gauss(48, 6), 1) if finished else '',
+            'photos': str(photos),
+            'photos_with_plant': str(max(0, photos - rng.choice([0, 0, 1, 2]))),
+            'mean_sharpness': r(rng.gauss(250, 50), 1),
+            'reason': '' if finished else 'the arm never started scanning',
+            'valid': 'True',
+        })
+
+    return {'hardware': hardware, 'line': line, 'turn': turn, 'square': square,
+            'goto': goto, 'obstacle': obstacle, 'tof': tof, 'map': map_rows,
+            'yolo': yolo, 'arm': arm, 'llm': llm}
 
 
 # ── plant-run trials ───────────────────────────────────────────────────────
@@ -170,9 +207,10 @@ def make_trials():
         clock = 0.0
         x = y = yaw = 0.0
         photo_names = []
+        nonplant_done = False
         for p in range(n_plants):
             plant = f'{PLANTS[p % len(PLANTS)]}_{p + 1}'
-            reached = rng.random() > 0.12
+            reached = (5 * t + p) % 7 != 3  # about one plant in seven not reached
             reach_s = rng.uniform(25, 70)
             clock += reach_s
             for k in range(8):
@@ -184,21 +222,40 @@ def make_trials():
             events.append({'t_s': r(clock, 1), 'event': 'reached' if reached else 'gave_up',
                            'detail': plant})
             truth = rng.choice(HEALTH)
-            gemini = truth if rng.random() > 0.2 else rng.choice(HEALTH)
-            # The last two trials have not been labelled yet.
+            # Gemini gets roughly one plant in five wrong.
+            gemini = truth if (t + p) % 5 else HEALTH[(HEALTH.index(truth) + 1) % 3]
+            species = PLANTS[p % len(PLANTS)]
+            gemini_name = species if (3 * t + p) % 7 else PLANTS[(p + 1) % len(PLANTS)]
+            # Now and then the detector sends it to something that is not a plant.
+            scanned = reached and (t + 2 * p) % 9 != 4
+            is_plant = not (t == 2 and scanned and not nonplant_done)
+            nonplant_done = nonplant_done or not is_plant
+            reason = ('' if scanned else
+                      'the arm never started scanning' if reached else
+                      rng.choice(['lost sight of the plant', 'blocked by an obstacle',
+                                  'Nav2 gave up']))
+            # The last two trials have not been labelled yet; one other plant is
+            # half done, to show a partly filled row.
             known = t < 6 and reached
-            n_photos = len(VIEWPOINTS) if reached else 0
+            half = known and t == 5 and p == 0
+            n_photos = len(VIEWPOINTS) if scanned else 0
             visits.append({
                 'plant': plant, 'reached': tf(reached),
                 'time_to_reach_s': r(reach_s, 1),
                 'parking_error_cm': r(abs(rng.gauss(6.5, 2.5)), 2) if reached else '',
                 'parking_heading_error_deg': r(abs(rng.gauss(4, 2)), 2) if reached else '',
                 'photos': str(n_photos),
-                'gemini_health': gemini if reached else '',
-                'gemini_confidence': r(rng.uniform(0.6, 0.97), 2) if reached else '',
-                'true_health': truth if known else '',
+                'gemini_name': gemini_name if scanned else '',
+                'gemini_health': gemini if scanned else '',
+                'gemini_confidence': r(rng.uniform(0.6, 0.97), 2) if scanned else '',
+                'failure_reason': reason,
+                'is_plant': tf(is_plant) if known and scanned else '',
+                'true_name': species if known and scanned and is_plant and not half else '',
+                'true_health': truth if known and scanned and is_plant and not half else '',
+                'photos_clear': (tf(rng.random() > 0.1) if known and scanned and not half else
+                                 ''),
             })
-            if not reached:
+            if not scanned:
                 continue
             shots = []
             for v in VIEWPOINTS:
@@ -224,14 +281,14 @@ def make_trials():
         for i in range(int(clock)):
             frames.append({'t_s': str(i), 'detections': str(rng.randint(0, 3)),
                            'fps': r(rng.uniform(13, 16), 1)})
-        done = [v for v in visits if v['reached'] == 'True']
+        done = [v for v in visits if v['gemini_health']]
         trials[tid] = {
             'summary': {
                 'trial': tid,
                 'started': (start + timedelta(hours=3 * t)).isoformat(timespec='seconds'),
                 'duration_s': round(clock, 1),
                 'plants_scanned': len(done),
-                'plants_not_reached': len(visits) - len(done),
+                'plants_not_reached': sum(v['reached'] != 'True' for v in visits),
                 'distance_driven_m': round(len(path) * 0.25, 2),
                 'avoidance_interventions': rng.randint(0, 4),
                 'photos': len(captures), 'reports': len(reports), 'frames': len(frames),
@@ -278,13 +335,25 @@ def compute_results():
          for k, rows in COMPONENTS.items()}
     visits = [v for t in TRIALS.values() for v in t['visits']]
     reached = [v for v in visits if v['reached'] == 'True']
-    labelled = [v for v in reached if v['true_health']]
+    scanned = [v for v in visits if v['gemini_health']]
+    plants = [v for v in scanned if v['is_plant'] == 'True']
+    hw = COMPONENTS['hardware'][-1]
+    arm_rows = c['arm']
     captures = [cap for t in TRIALS.values() for cap in t['captures']]
     y = COMPONENTS['yolo'][-1]
     return {
         'line': {'distance_error_cm': stat(num(x, 'distance_error_cm') for x in c['line']),
                  'lateral_drift_cm': stat(num(x, 'lateral_drift_cm') for x in c['line'])},
-        'turn': {'error_deg': stat(num(x, 'error_deg') for x in c['turn'])},
+        'hardware': {'passed_pct': {'mean': round(100 * int(hw['passed']) / int(hw['checks']), 2),
+                                    'std': None, 'n': int(hw['checks'])}},
+        'turn': {'error_deg': stat(num(x, 'error_deg') for x in c['turn']),
+                 'yaw_scale': stat(abs(num(x, 'commanded_deg') / num(x, 'turned_deg'))
+                                   for x in c['turn'])},
+        'tof': {'error_cm': stat(num(x, 'error_cm') for x in c['tof'])},
+        'arm': {'finished_pct': rate(x['finished'] == 'True' for x in arm_rows),
+                'duration_s': stat(num(x, 'duration_s') for x in arm_rows if x['finished'] == 'True'),
+                'in_frame_pct': stat(100 * num(x, 'photos_with_plant') / num(x, 'photos')
+                                     for x in arm_rows if num(x, 'photos'))},
         'square': {'closure_error_cm': stat(num(x, 'closure_error_cm') for x in c['square'])},
         'goto': {'success_pct': rate(x['reached'] == 'True' for x in c['goto']),
                  'position_error_cm': stat(num(x, 'position_error_cm')
@@ -299,10 +368,14 @@ def compute_results():
         'llm': {'agreement_pct': stat(num(x, 'agreement_pct') for x in c['llm'])},
         'camera': {'sharpness': stat(num(x, 'sharpness') for x in captures),
                    'sharp_pct': rate(x['sharp'] == 'True' for x in captures)},
+        'patrol': {'reported_pct': rate(bool(v['gemini_health']) for v in visits)},
         'parking': {'parking_error_cm': stat(num(v, 'parking_error_cm') for v in reached),
                     'time_to_reach_s': stat(num(v, 'time_to_reach_s') for v in reached),
                     'reach_pct': rate(v['reached'] == 'True' for v in visits)},
-        'diagnosis': {'accuracy_pct': rate(v['gemini_health'] == v['true_health'] for v in labelled)},
+        'diagnosis': {
+            'health_pct': rate(v['gemini_health'] == v['true_health'] for v in plants if v['true_health']),
+            'name_pct': rate(v['gemini_name'] == v['true_name'] for v in plants if v['true_name']),
+            'is_plant_pct': rate(v['is_plant'] == 'True' for v in scanned if v['is_plant'])},
     }
 
 
@@ -320,10 +393,12 @@ def ground_truth_csv():
     rows = []
     for tid, t in TRIALS.items():
         for v in t['visits']:
-            if v['reached'] != 'True':
+            if not v['gemini_health']:  # nothing to judge if it was never scanned
                 continue
             rows.append({'trial': tid, 'plant': v['plant'],
-                         'gemini_health': v['gemini_health'], 'true_health': v['true_health']})
+                         'gemini_name': v['gemini_name'], 'gemini_health': v['gemini_health'],
+                         'is_plant': v['is_plant'], 'true_name': v['true_name'],
+                         'true_health': v['true_health'], 'photos_clear': v['photos_clear']})
     return to_csv(rows)
 
 
