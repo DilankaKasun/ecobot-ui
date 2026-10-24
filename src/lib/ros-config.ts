@@ -8,6 +8,9 @@ export const ROS_CONFIG = {
   OBSTACLE_STREAM_PORT: 8083,
   GROUND_STREAM_PORT: 8084,
   ARM_CAMERA_PORT: 8085,
+  // Read-only trials server: recorded plant runs, component-test rows and
+  // the export zip. Plain HTTP, see src/lib/trials-api.ts.
+  TRIALS_HTTP_PORT: 8090,
 
   TOPICS: {
     CMD_VEL: '/cmd_vel',
@@ -43,6 +46,8 @@ export const ROS_CONFIG = {
     CAMERA_COLOR_COMPRESSED: '/camera/color/image_raw/compressed',
     CAMERA_OBSTACLE_COMPRESSED: '/ecobot/obstacle/compressed',
     CAMERA_ARM_COMPRESSED: '/arm/camera/image_raw/compressed',
+    // Trial recorder: what is being recorded right now, once a second.
+    TRIAL_STATUS: '/ecobot/trial_status',
   },
 
   SERVICES: {

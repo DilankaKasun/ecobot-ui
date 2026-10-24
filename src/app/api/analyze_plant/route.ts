@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    const text = response.text();
+    const text = response.text;
     if (!text) {
       throw new Error('Empty response from Gemini');
     }

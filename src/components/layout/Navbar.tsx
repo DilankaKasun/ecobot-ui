@@ -14,15 +14,15 @@ export const Navbar: React.FC = () => {
   const { label: userLabel, logout } = useAuth();
 
   return (
-    <header className="h-16 flex items-center justify-between px-6 bg-card backdrop-blur-md border-b border-card-border shadow-sm sticky top-0 z-50">
-      <div className="flex items-center gap-3">
+    <header className="h-16 flex items-center justify-between gap-2 px-4 md:px-6 bg-card backdrop-blur-md border-b border-card-border shadow-sm sticky top-0 z-50">
+      <div className="flex items-center gap-3 min-w-0">
         <Link href="/" className="flex items-center gap-2 group">
           <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/20 text-primary group-hover:bg-primary/30 transition-colors">
             <Bot className="w-5 h-5" />
           </div>
           <h1 className="font-bold text-foreground tracking-wide text-sm flex items-center gap-1.5">
-            EcoBot <span className="font-medium text-muted-foreground">Terminal</span>
-            <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded font-mono ml-1 border border-card-border">
+            EcoBot <span className="hidden xs:inline font-medium text-muted-foreground">Terminal</span>
+            <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded font-mono ml-1 border border-card-border whitespace-nowrap">
               ROS 2
             </span>
           </h1>
@@ -45,24 +45,25 @@ export const Navbar: React.FC = () => {
         </Link>
       </div>
 
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-3 md:gap-6 shrink-0">
         <ThemeToggle />
         
         {/* Operator Toggle */}
         <button
           onClick={() => setOperatorMode(operatorMode === 'operator' ? 'observer' : 'operator')}
-          className={`flex items-center gap-2 px-4 py-1.5 rounded-md border transition-all text-xs font-semibold ${
+          title={operatorMode === 'operator' ? 'Operator' : 'View Only'}
+          className={`flex items-center gap-2 px-2.5 sm:px-4 py-1.5 rounded-md border transition-all text-xs font-semibold ${
             operatorMode === 'operator'
               ? 'bg-primary/20 backdrop-blur-md border-primary/40 text-primary shadow-[0_0_15px_rgba(0,229,192,0.2)]'
               : 'bg-card backdrop-blur-md border-card-border text-muted-foreground hover:text-foreground'
           }`}
         >
           <ShieldCheck className="w-4 h-4" />
-          <span>{operatorMode === 'operator' ? 'Operator' : 'View Only'}</span>
+          <span className="hidden sm:inline">{operatorMode === 'operator' ? 'Operator' : 'View Only'}</span>
         </button>
 
         {/* Signed-in operator + sign out */}
-        <div className="flex items-center gap-2 border-l border-card-border pl-4">
+        <div className="flex items-center gap-2 border-l border-card-border pl-3 md:pl-4">
           <span className="hidden md:inline text-[11px] font-mono text-muted-foreground max-w-[120px] truncate" title={userLabel ?? ''}>
             {userLabel}
           </span>
